@@ -71,9 +71,16 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile):
     z_offset = parse_height(footingProfile)
     footing = generate_footing(master_polygon, footingProfile)
     sockle = generate_sockle(master_polygon, sockleProfile, z_offset)
+    lower_reach = generate_lower_reach(master_polygon, 1000.0)
+    higher_reach = generate_lower_reach(master_polygon, 4750.0)
 
+    trace("high: " + pprint.pformat(higher_reach))
+    trace("low: " + pprint.pformat(lower_reach))
     trace("sockle is: " + pprint.pformat(sockle))
     trace("footing is: " + pprint.pformat(footing))
+
+def generate_lower_reach(polygon, z_offset):
+    return generate_offsetted_beams(polygon, "100*100", z_offset, "Timber_undefined")
 
 def generate_sockle(foundationPolygon, profile, z_offset):
     sockleCenter = []
@@ -88,31 +95,36 @@ def generate_sockle(foundationPolygon, profile, z_offset):
         "points": sockleCenter,
         "material": "Concrete_Undefined"
     }
-    
+
 def generate_footing(foundationPolygon, profile):
+    return generate_offsetted_beams(foundationPolygon, profile, 0, "Concrete_undefined")
+    
+def generate_offsetted_beams(foundationPolygon, profile, z_offset, material):
     mass_center = centroid(foundationPolygon)
     footingCenter = []
     h_offset = parse_width(profile)/2
     for node in foundationPolygon:
         # todo: parse from profile
-        footingCenter.append(node.moveCloserTo(mass_center, h_offset))
+        endpoint = node.moveCloserTo(mass_center, h_offset)
+        endpoint.Translate(0, 0, z_offset)
+        footingCenter.append(endpoint)
     footingLines = pairwise(footingCenter)
     footings = []
     for start,end in footingLines:
         vector = start.GetVectorTo(end)
         #trace(start, )
         corners = Point.Normalize(vector, h_offset)
-        trace("start: {0}, end:{1}, direction: {2} translate vector: {3}".format(start, end, vector, corners,))
+        #trace("start: {0}, end:{1}, direction: {2} translate vector: {3}".format(start, end, vector, corners,))
         #start.Translate(corners)
         #end.Translate(corners)
         aa = start.Clone()
-        bb = start.Clone()
+        bb = end.Clone()
         aa.Translate(corners)
         bb.Translate(corners)
         footings.append({
             "profile": profile,
             "points": [aa, bb],
-            "material": "Concrete_Undefined"
+            "material": material
         })
     return footings
 
@@ -131,9 +143,8 @@ if __name__ == "__main__":
 
          ..to view what has changed.
     """
-    zz = pairwise(["a","b","c","d","e"])
-
-    trace("pairwise: ", list(zz))
+    #zz = pairwise(["a","b","c","d","e"])
+    #trace("pairwise: ", list(zz))
     
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 7600.00]
