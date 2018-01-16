@@ -92,15 +92,26 @@ def generate_sockle(foundationPolygon, profile, z_offset):
 def generate_footing(foundationPolygon, profile):
     mass_center = centroid(foundationPolygon)
     footingCenter = []
+    h_offset = parse_width(profile)/2
     for node in foundationPolygon:
         # todo: parse from profile
-        footingCenter.append(node.moveCloserTo(mass_center, 250.0))
+        footingCenter.append(node.moveCloserTo(mass_center, h_offset))
     footingLines = pairwise(footingCenter)
     footings = []
     for start,end in footingLines:
+        vector = start.GetVectorTo(end)
+        #trace(start, )
+        corners = Point.Normalize(vector, h_offset)
+        trace("start: {0}, end:{1}, direction: {2} translate vector: {3}".format(start, end, vector, corners,))
+        #start.Translate(corners)
+        #end.Translate(corners)
+        aa = start.Clone()
+        bb = start.Clone()
+        aa.Translate(corners)
+        bb.Translate(corners)
         footings.append({
             "profile": profile,
-            "points": [start, end],
+            "points": [aa, bb],
             "material": "Concrete_Undefined"
         })
     return footings
@@ -120,6 +131,9 @@ if __name__ == "__main__":
 
          ..to view what has changed.
     """
+    zz = pairwise(["a","b","c","d","e"])
+
+    trace("pairwise: ", list(zz))
     
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 7600.00]

@@ -25,8 +25,8 @@ class Point( object ):
         return Point(new_x, new_y, new_z)
     
     def Translate(self, x, y=None, z=None):
-        if x is Point:
-            x,y,z = x.x, x.y, x.z
+        if isinstance(x, Point):
+            (x,y,z) = (x.x, x.y, x.z)
         self.x += x
         self.y += y
         self.z += z
@@ -36,7 +36,7 @@ class Point( object ):
     #    self.Translate(point.x, point.y, point.z)
 
     def Clone(self):
-        return self.moveCloserTo(Point(0,0,0), 0.0)
+        return self.moveCloserTo(Point(0.00,0.00,0.00), 0.0)
     
     def GetVectorTo(self, point):
         copy = self.Clone()
@@ -46,7 +46,7 @@ class Point( object ):
         return copy
 
     def Normalize(vector, len=1):
-        vmag = magnitude(vector)
+        vmag = Point.magnitude(vector)
         normalized = Point(vector.x/vmag, vector.y/vmag, vector.z/vmag)
         normalized.x *= len
         normalized.y *= len
