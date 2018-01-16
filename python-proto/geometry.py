@@ -28,12 +28,22 @@ def toDistances(distanceList):
         sum += dd
     return absolutes
 
-def parse_height(profile):
-    p = re.compile('(\d+)\*\d+')
+def parse_profile(profile):
+    p = re.compile('(\d+)\*(\d+)')
     m = p.match(profile)
+    return m
+
+def parse_height(profile):
+    m = parse_profile(profile)
     height = m.group(1)
     trace("profile height: " + height)
     return float(height)
+
+def parse_width(profile):
+    m = parse_profile(profile)
+    width = m.group(2)
+    trace("profile width: " + width)
+    return float(width)
 
 def write_out(grid_x, grid_y, sockleProfile, footingProfile):
     # define line, or grid intersect
