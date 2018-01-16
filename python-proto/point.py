@@ -3,7 +3,9 @@ import math
 class Point( object ):
     def __init__( self, x, y, z ):
         self.x, self.y, self.z = x, y, z
-    def distFrom( self, x, y, z ):
+    def distFrom( self, x, y=None, z=None ):
+        if isinstance(x, Point):
+            (x,y,z) = (x.x, x.y, x.z)
         return math.sqrt( (self.x-x)**2 + (self.y-y)**2 + (self.z-z)**2 )
     
     def magnitude(v):
