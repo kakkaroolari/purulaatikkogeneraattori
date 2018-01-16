@@ -3,14 +3,15 @@ from __future__ import print_function
 import sys
 import pprint
 from point import Point
-import itertools
+import itertools #import izip
+import re
 
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = itertools.tee(iterable)
     next(b, None)
-    return itertools.izip(a, b)
+    return zip(a, b)
 
 def centroid(points):
     x = [p.x for p in points]
@@ -26,6 +27,13 @@ def toDistances(distanceList):
         absolutes.append(dd+sum)
         sum += dd
     return absolutes
+
+def parse_height(profile):
+    p = re.compile('(\d+)\*\d+')
+    m = p.match(profile)
+    height = m.group(1)
+    trace("profile height: " + height)
+    return float(height)
 
 def write_out(grid_x, grid_y, sockleProfile, footingProfile):
     # define line, or grid intersect
@@ -50,16 +58,20 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile):
     
     trace("centroid is: ", centroid(master_polygon))
     #trace("sockle is: ", ', '.join([str(x) for x in polygon]))
-    sockle = generate_sockle(master_polygon, sockleProfile)
-    trace("sockle is: " + pprint.pformat(sockle))
+    z_offset = parse_height(footingProfile)
     footing = generate_footing(master_polygon, footingProfile)
+    sockle = generate_sockle(master_polygon, sockleProfile, z_offset)
+
+    trace("sockle is: " + pprint.pformat(sockle))
     trace("footing is: " + pprint.pformat(footing))
 
-def generate_sockle(foundationPolygon, profile):
+def generate_sockle(foundationPolygon, profile, z_offset):
     sockleCenter = []
     for node in foundationPolygon:
         # kinda cloning
-        sockleCenter.append(node.moveCloserTo(Point(0,0,0), 0.0))
+        clonepoint = node.Clone()
+        clonepoint.Translate(0, 0, z_offset)
+        sockleCenter.append(clonepoint)
     # todo: closedloop or not..
     return {
         "profile": profile,
@@ -87,7 +99,7 @@ def trace(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
     
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     """
          This script generates parts for purulaatikko
 

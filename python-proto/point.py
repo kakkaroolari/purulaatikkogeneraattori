@@ -19,6 +19,14 @@ class Point( object ):
             new_y -= amount
         return Point(new_x, new_y, new_z)
     
+    def Translate(self, x, y, z):
+        self.x += x
+        self.y += y
+        self.z += z
+
+    def Clone(self):
+        return self.moveCloserTo(Point(0,0,0), 0.0)
+
     def __str__(self):
         return "Point({0:.2f}, {1:.2f}, {2:.2f})".format(self.x, self.y, self.z)
     def __unicode__(self):
