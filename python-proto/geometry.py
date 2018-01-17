@@ -5,6 +5,7 @@ import pprint
 from point import Point
 import itertools #import izip
 import re
+import json
 
 
 def pairwise(iterable):
@@ -76,11 +77,17 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile):
     higher_reach = generate_lower_reach(master_polygon, 4750.0)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
 
-    trace("high: " + pprint.pformat(higher_reach))
-    trace("studs: " + pprint.pformat(wall_studs))
+    #trace("high: " + pprint.pformat(higher_reach))
+    #trace("studs: " + pprint.pformat(wall_studs))
     #trace("low: " + pprint.pformat(lower_reach))
-    #trace("sockle is: " + pprint.pformat(sockle))
-    #trace("footing is: " + pprint.pformat(footing))
+    trace("sockle is: " + pprint.pformat(sockle))
+    trace("footing is: " + pprint.pformat(footing))
+
+    combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
+    
+    with open('data.json', 'w') as jsonfile:
+        json.dump(combined_data, jsonfile, cls=MyEncoder)
+        #jsonfile.write(pprint.pformat(combined_data))
 
 def generate_lower_reach(polygon, z_offset):
     return generate_offsetted_beams(polygon, "100*100", z_offset, "Timber_undefined")
@@ -128,11 +135,11 @@ def generate_sockle(foundationPolygon, profile, z_offset):
         clonepoint.Translate(0, 0, z_offset)
         sockleCenter.append(clonepoint)
     # todo: closedloop or not..
-    return {
+    return [{
         "profile": profile,
         "points": sockleCenter,
         "material": "Concrete_Undefined"
-    }
+    }]
 
 def generate_footing(foundationPolygon, profile):
     return generate_offsetted_beams(foundationPolygon, profile, 0, "Concrete_undefined")
@@ -181,6 +188,10 @@ def generate_offsetted_lines(foundationPolygon, profile, z_offset):
 def trace(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
     
+from json import JSONEncoder
+class MyEncoder(JSONEncoder):
+    def default(self, o):
+        return o.__dict__
 
 if __name__ == "__main__":
     """

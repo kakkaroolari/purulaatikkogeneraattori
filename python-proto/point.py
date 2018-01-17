@@ -55,9 +55,12 @@ class Point( object ):
         normalized.z *= len
         return normalized
 
+    #def default(self, obj):
+    #    return {"point" : {"x":obj.x,"y":obj.y,"z":obj.z}}
     def __str__(self):
         return "Point({0:.2f}, {1:.2f}, {2:.2f})".format(self.x, self.y, self.z)
     def __unicode__(self):
         return u"Point({0:.2f}, {1:.2f}, {2:.2f})".format(self.x, self.y, self.z)
     def __repr__(self):
         return "Point({0:.2f}, {1:.2f}, {2:.2f})".format(self.x, self.y, self.z)
+        #return {"point" : {"x":self.x,"y":self.y,"z":self.z}}
