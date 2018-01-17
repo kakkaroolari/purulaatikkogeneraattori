@@ -7,6 +7,8 @@
 # Nuget packages
 /NuGetPackages/
 
+# Some Tekla schaisse
+ObjDir/
 
 # User-specific files
 *.suo
