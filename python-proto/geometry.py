@@ -138,7 +138,7 @@ def generate_sockle(foundationPolygon, profile, z_offset):
     return [{
         "profile": profile,
         "points": sockleCenter,
-        "material": "Concrete_Undefined"
+        "material": "Concrete_undefined"
     }]
 
 def generate_footing(foundationPolygon, profile):
@@ -198,7 +198,7 @@ if __name__ == "__main__":
          This script generates parts for purulaatikko
 
          Usage:
-         $ python copysettings.py
+         $ python geometry.py
 
          After completion, implement geometry generator in Tekla..
 
