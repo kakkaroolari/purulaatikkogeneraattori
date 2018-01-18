@@ -23,12 +23,20 @@ namespace EritePlugins.Core.Purulaatikko
             {
                 System.Diagnostics.Debug.WriteLine("[ERITE] Core business..");
                 SetToolWorkplane();
+
+                DoParts();
             }
             finally
             {
                 //Tekla.SetCurrentTransformationPlane(original);
             }
             return true;
+        }
+
+        private void DoParts()
+        {
+            var list = JsonReader.ReadItIn(_attributes.PartsAttributeFile);
+            System.Diagnostics.Debug.WriteLine($"[ERITE] Found {list.Count} part specs to do.");
         }
 
         protected void SetToolWorkplane()
