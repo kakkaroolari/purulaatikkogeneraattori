@@ -12,16 +12,16 @@ namespace EritePlugins.Core.Purulaatikko
     {
         // read python parts in i.e. python-proto\data.json
 
-        public static IList<JsPart> ReadItIn(string FileLoc)
+        public static IList<JsSection> ReadItIn(string FileLoc)
         {
-            List<JsPart> parts = null;
+            List<JsSection> parts = null;
             try
             {
                 //var ro = new JsRootobject();
                 StreamReader sr = new StreamReader(FileLoc);
                 string jsonString = sr.ReadToEnd();
                 JavaScriptSerializer ser = new JavaScriptSerializer();
-                var ro = ser.Deserialize<List<JsPart>>(jsonString);
+                var ro = ser.Deserialize<List<JsSection>>(jsonString);
                 parts = ro/*.Property1*/.ToList();
             }
             catch (Exception e)
@@ -33,10 +33,10 @@ namespace EritePlugins.Core.Purulaatikko
     }
 
 
-    public class JsRootobject
-    {
-        public JsPart[] Property1 { get; set; }
-    }
+    //public class JsRootobject
+    //{
+    //    public JsSection[] Property1 { get; set; }
+    //}
 
     public class JsPart
     {
@@ -50,6 +50,12 @@ namespace EritePlugins.Core.Purulaatikko
         public double x { get; set; }
         public double y { get; set; }
         public double z { get; set; }
+    }
+
+    public class JsSection
+    {
+        public string section { get; set; }
+        public JsPart[] data { get; set; }
     }
 
 

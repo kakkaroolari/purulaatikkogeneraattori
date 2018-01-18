@@ -29,9 +29,6 @@
             }
         }
 
-
-
-
         public override List<InputDefinition> DefineInput()
         {
             var inputList = new List<InputDefinition>();
@@ -73,6 +70,23 @@
             return creator.Create();
         }
 
-
+        // This was console test app
+        /*
+        static void Main(string[] args)
+        {
+            if (args.Length != 1)
+            {
+                Console.Error.WriteLine("usage:\n\n\b<command> <input-file>\n");
+                Environment.Exit(1);
+            }
+            var attrs = new Core.Purulaatikko.PurulaatikkoAttributes
+            {
+                PartsAttributeFile = args[0]
+            };
+            var creator = new Core.Purulaatikko.Creator();
+            creator.SetAttributes(attrs);
+            creator.Create();
+        }
+        */
     }
 }

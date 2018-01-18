@@ -86,8 +86,18 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile):
     combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
     
     with open('data.json', 'w') as jsonfile:
-        json.dump(combined_data, jsonfile, cls=MyEncoder)
+        json.dump([
+            named_section("footing", footing),
+            named_section("sockle", sockle),
+            named_section("lower_reach", lower_reach),
+            named_section("higher_reach", higher_reach),
+            named_section("wall_studs", wall_studs)
+        ], jsonfile, cls=MyEncoder)
         #jsonfile.write(pprint.pformat(combined_data))
+
+def named_section(name, data):
+    # todo: can add assembly meta, classes etc.
+    return { "section": name, "data": data }
 
 def generate_lower_reach(polygon, z_offset):
     return generate_offsetted_beams(polygon, "100*100", z_offset, "Timber_undefined")
