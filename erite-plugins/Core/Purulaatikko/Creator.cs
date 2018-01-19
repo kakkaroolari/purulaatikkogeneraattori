@@ -28,6 +28,10 @@ namespace EritePlugins.Core.Purulaatikko
 
                 DoParts();
             }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ERITE] Catastrophic failure: {e.Message}");
+            }
             finally
             {
                 //Tekla.SetCurrentTransformationPlane(original);
@@ -99,22 +103,31 @@ namespace EritePlugins.Core.Purulaatikko
         {
             Assembly assembly = null;
             int labelCounter = 0;
+            string label = $"{labelPrefix}_{++labelCounter}";
             foreach (var beamSpec in data)
             {
-                var beam = CreateBeamOrPoly(beamSpec);
-                if (beam.Insert())
+                try
                 {
-                    counter++;
-                    if (null == assembly)
+                    var beam = CreateBeamOrPoly(beamSpec);
+                    if (beam.Insert())
                     {
-                        assembly = beam.GetAssembly();
+                        counter++;
+                        if (null == assembly)
+                        {
+                            assembly = beam.GetAssembly();
+                        }
+                        else
+                        {
+                            assembly.Add(beam);
+                            assembly.Modify();
+                        }
+                        beam.SetLabel(label);
                     }
-                    else
-                    {
-                        assembly.Add(beam);
-                        assembly.Modify();
-                    }
-                    beam.SetLabel($"{labelPrefix}_{++labelCounter}");
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ERITE] Part failure: {label}");
+                    throw;
                 }
             }
         }
@@ -123,6 +136,7 @@ namespace EritePlugins.Core.Purulaatikko
         {
             Part beam = null;
             if (null == beamSpec || null == beamSpec.points || beamSpec.points.Length < 2) return null;
+            Position.PlaneEnum plane = Position.PlaneEnum.MIDDLE; //< woods
             if (beamSpec.points.Length == 2)
             {
                 beam = new Beam
@@ -137,15 +151,21 @@ namespace EritePlugins.Core.Purulaatikko
                 {
                     Contour = new Contour()
                     {
-                        ContourPoints = new ArrayList(beamSpec.points.Select(p => p.ToTS()).ToList())
+                        ContourPoints = new ArrayList(beamSpec.points.Select(p => new ContourPoint(p.ToTS(), null)).ToList())
                     }
                 };
+                plane = Position.PlaneEnum.LEFT;
             }
 
             beam.Material = ChainSaw.FromString(beamSpec.material);
             beam.Profile = new Profile
             {
                 ProfileString = beamSpec.profile
+            };
+            beam.Position = new Position
+            {
+                Depth = Position.DepthEnum.FRONT,
+                Plane = plane
             };
             return beam;
         }
