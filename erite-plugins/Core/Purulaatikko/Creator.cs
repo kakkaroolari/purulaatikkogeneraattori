@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using Tekla.Structures.Model;
 using Tekla.Structures.Geometry3d;
 using System.Linq;
@@ -46,25 +47,31 @@ namespace EritePlugins.Core.Purulaatikko
                 foreach (JsSection partSpec in list)
                 {
                     if (null == partSpec) continue;
-                    switch (partSpec.section)
+                    int warn = partCounter;
+                    ForNowCreateAllBeams(partSpec.data, ref partCounter, partSpec.section);
+                    if (warn == partCounter)
                     {
-                        case "footing":
-                        {
-                            GenerateConcreteBeams(partSpec.data, ref partCounter);
-                            break;
-                        }
-                        case "sockle":
-                        {
-                            //GenerateConcretedStuff(partSpec.data, ref partCounter);
-                            break;
-                        }
-                        default:
-                        {
-                            //GenerateWoodenBeams(partSpec.data, ref partCounter);
-                            // default is wood
-                            break;
-                        }
+                        System.Diagnostics.Debug.WriteLine($"[ERITE] No elements in section {partSpec.section}");
                     }
+                    //switch (partSpec.section)
+                    //{
+                    //    case "footing":
+                    //    {
+                    //        GenerateConcreteBeams(partSpec.data, ref partCounter);
+                    //        break;
+                    //    }
+                    //    case "sockle":
+                    //    {
+                    //        //GenerateConcretedStuff(partSpec.data, ref partCounter);
+                    //        break;
+                    //    }
+                    //    default:
+                    //    {
+                    //        GenerateWoodenBeams(partSpec.data, ref partCounter);
+                    //        // default is wood
+                    //        break;
+                    //    }
+                    //}
                 }
             }
             if ( 0 == partCounter )
@@ -73,33 +80,74 @@ namespace EritePlugins.Core.Purulaatikko
             }
         }
 
-        private void GenerateConcreteBeams(JsPart[] data, ref int partCounter)
+        //private void GenerateConcreteBeams(JsPart[] data, ref int partCounter)
+        //{
+        //    ForNowCreateAllBeams(data, ref partCounter, "Footing");
+        //}
+
+        //private void GenerateConcretedStuff(JsPart[] data, ref int partCounter)
+        //{
+        //    ForNowCreateAllBeams(data, ref partCounter, "Footing");
+        //}
+
+        //private void GenerateWoodenBeams(JsPart[] data, ref int counter)
+        //{
+        //    ForNowCreateAllBeams(data, ref counter, "Stud");
+        //}
+
+        private void ForNowCreateAllBeams(JsPart[] data, ref int counter, string labelPrefix)
         {
-            //var internalCounter .. uh todo label etc.
-            foreach(var beamSpec in data)
+            Assembly assembly = null;
+            int labelCounter = 0;
+            foreach (var beamSpec in data)
             {
-                var beam = new Beam
+                var beam = CreateBeamOrPoly(beamSpec);
+                if (beam.Insert())
                 {
-                    StartPoint = beamSpec.points[0].ToTS(),
-                    EndPoint = beamSpec.points[1].ToTS(),
-                    Material = ChainSaw.FromString(beamSpec.material),
-                    Profile = new Profile{
-                        ProfileString = beamSpec.profile
+                    counter++;
+                    if (null == assembly)
+                    {
+                        assembly = beam.GetAssembly();
                     }
-                };
-                beam.Insert();
-                    //(, );
+                    else
+                    {
+                        assembly.Add(beam);
+                        assembly.Modify();
+                    }
+                    beam.SetLabel($"{labelPrefix}_{++labelCounter}");
+                }
             }
         }
 
-        private void GenerateConcretedStuff(JsPart[] data, ref int partCounter)
+        private Part CreateBeamOrPoly(JsPart beamSpec)
         {
-            throw new NotImplementedException();
-        }
+            Part beam = null;
+            if (null == beamSpec || null == beamSpec.points || beamSpec.points.Length < 2) return null;
+            if (beamSpec.points.Length == 2)
+            {
+                beam = new Beam
+                {
+                    StartPoint = beamSpec.points[0].ToTS(),
+                    EndPoint = beamSpec.points[1].ToTS(),
+                };
+            }
+            else
+            {
+                beam = new PolyBeam
+                {
+                    Contour = new Contour()
+                    {
+                        ContourPoints = new ArrayList(beamSpec.points.Select(p => p.ToTS()).ToList())
+                    }
+                };
+            }
 
-        private void GenerateWoodenBeams(JsPart[] data, ref int counter)
-        {
-            throw new NotImplementedException();
+            beam.Material = ChainSaw.FromString(beamSpec.material);
+            beam.Profile = new Profile
+            {
+                ProfileString = beamSpec.profile
+            };
+            return beam;
         }
 
         protected void SetToolWorkplane()

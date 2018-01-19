@@ -100,7 +100,7 @@ def named_section(name, data):
     return { "section": name, "data": data }
 
 def generate_lower_reach(polygon, z_offset):
-    return generate_offsetted_beams(polygon, "100*100", z_offset, "Timber_undefined")
+    return generate_offsetted_beams(polygon, "100*100", z_offset, "Timber_Undefined")
 
 def create_wood_at(point, height, profile):
     low_point = point.Clone()
@@ -109,7 +109,7 @@ def create_wood_at(point, height, profile):
     return {
         "profile": profile,
         "points": [low_point, high_point],
-        "material": "Timber_undefined"
+        "material": "Timber_Undefined"
     }
 
 def generate_wall_studs(polygon, z_offset, height):
@@ -148,11 +148,11 @@ def generate_sockle(foundationPolygon, profile, z_offset):
     return [{
         "profile": profile,
         "points": sockleCenter,
-        "material": "Concrete_undefined"
+        "material": "Concrete_Undefined"
     }]
 
 def generate_footing(foundationPolygon, profile):
-    return generate_offsetted_beams(foundationPolygon, profile, 0, "Concrete_undefined")
+    return generate_offsetted_beams(foundationPolygon, profile, 0, "Concrete_Undefined")
     
 def generate_offsetted_beams(foundationPolygon, profile, z_offset, material):
     centerlines = generate_offsetted_lines(foundationPolygon, profile, z_offset)
