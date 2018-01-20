@@ -125,6 +125,8 @@ def generate_wall_studs(polygon, z_offset, height):
         studpoints.append(create_wood_at(start, height, "100*100"))
         #studpoints.append(create_wood_at(end, height, "100*100"))
         # normal 4x2's
+		#pitk‰sein‰ middle.top.left.. eh ts paskaa
+		#p‰‰tysein‰ Ver.Rot.Hor=down,back, middle
         current = start.Clone()
         towards = Point.Normalize(direction, 50)
         current.Translate(towards)
