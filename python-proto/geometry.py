@@ -6,7 +6,14 @@ from point import Point
 import itertools #import izip
 import re
 import json
+from constantdict import ConstantDict
 
+class Rotation(ConstantDict):
+    """Tekla Position.Rotation"""
+    FRONT = 0
+    TOP = 1
+    BACK = 2
+    BELOW = 3
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -76,7 +83,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile):
 	# todo: use previous profile for xy-plane offset
     sockle = generate_sockle(master_polygon, sockleProfile, z_offset)
     lower_reach = generate_lower_reach(master_polygon, 1000.0)
-    higher_reach = generate_lower_reach(master_polygon, 4700.0)
+    higher_reach = generate_lower_reach(master_polygon, 4750.0)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
 
     #trace("high: " + pprint.pformat(higher_reach))
@@ -104,17 +111,19 @@ def named_section(name, data):
 def generate_lower_reach(polygon, z_offset):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset+50.0, "Timber_Undefined")
 
-def create_wood_at(point, height, profile):
+def create_wood_at(point, height, profile, rotation=None):
     low_point = point.Clone()
     high_point = low_point.Clone()
     high_point.Translate(0,0,height)
     return {
         "profile": profile,
+        "rotation": rotation,
         "points": [low_point, high_point],
         "material": "Timber_Undefined"
     }
 
 def generate_wall_studs(polygon, z_offset, height):
+    # todo: purulaatikko constant
     xy_offset = 50.0
     centerlines = generate_offsetted_lines(polygon, xy_offset, 1100.0)
     # run points around each lower wood k600
@@ -122,13 +131,16 @@ def generate_wall_studs(polygon, z_offset, height):
     for start,end in centerlines:
         # do one wall line
         direction = start.GetVectorTo(end)
+        rotation = direction_to_rotation(direction)
+        trace("beam rot type: ", type(rotation))
+        #beamcenter = direction.Clone()
         length = start.distFrom(end)
         count = int((length-200.0)/600.0)
         # corner woods
         tuned_start = start.Clone()
         towards = Point.Normalize(direction, -50)
         tuned_start.Translate(towards)
-        studpoints.append(create_wood_at(tuned_start, height, "100*100"))
+        studpoints.append(create_wood_at(tuned_start, height, "100*100", rotation))
         #studpoints.append(create_wood_at(end, height, "100*100"))
         # normal 4x2's
 		#pitkaseina middle.top.left.. eh ts paskaa
@@ -142,8 +154,17 @@ def generate_wall_studs(polygon, z_offset, height):
             #trace("counting: ", i)
             current.Translate(towards)
             # todo: orientation(?)
-            studpoints.append(create_wood_at(current, height, "50*100"))
+            studpoints.append(create_wood_at(current, height, "50*100", rotation))
     return studpoints
+
+def direction_to_rotation(direction):
+    if abs(direction.y) > abs(direction.x):
+        if direction.y > 0:
+            return Rotation.FRONT
+        return Rotation.BACK
+    if direction.x > 0:
+        return Rotation.TOP
+    return Rotation.BELOW
 
 def generate_sockle(foundationPolygon, sockleProfile, z_offset):
     sockleCenter = []
@@ -156,6 +177,7 @@ def generate_sockle(foundationPolygon, sockleProfile, z_offset):
     # todo: closedloop or not..
     return [{
         "profile": sockleProfile,
+        "rotation": None,
         "points": sockleCenter,
         "material": "Concrete_Undefined"
     }]
@@ -188,6 +210,7 @@ def generate_offsetted_beams(foundationPolygon, profile, xy_offset, z_offset, ma
     for aa,bb in centerlines:
         beams.append({
             "profile": profile,
+            "rotation": None,
             "points": [aa, bb],
             "material": material
         })

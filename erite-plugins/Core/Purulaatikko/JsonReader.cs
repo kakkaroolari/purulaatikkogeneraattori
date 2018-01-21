@@ -42,6 +42,7 @@ namespace EritePlugins.Core.Purulaatikko
     {
         public string profile { get; set; }
         public JsPoint[] points { get; set; }
+        public int? rotation { get; set; }
         public string material { get; set; }
     }
 

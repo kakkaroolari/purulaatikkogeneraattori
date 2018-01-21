@@ -4,6 +4,7 @@ using Tekla.Structures.Model;
 using Tekla.Structures.Geometry3d;
 using System.Linq;
 using System.Windows.Forms;
+using EritePlugins.Common;
 using Tekla.Structures.Model.UI;
 
 namespace EritePlugins.Core.Purulaatikko
@@ -147,9 +148,12 @@ namespace EritePlugins.Core.Purulaatikko
                     {
                         Depth = Position.DepthEnum.MIDDLE,
                         Plane = Position.PlaneEnum.MIDDLE
-                        //Rotation = 
                     }
                 };
+                if (null != beamSpec.rotation)
+                {
+                    beam.Position.Rotation = EnumConverter.TryFromInt((int)beamSpec.rotation, Position.RotationEnum.FRONT);
+                }
             }
             else
             {
@@ -163,7 +167,8 @@ namespace EritePlugins.Core.Purulaatikko
                     {
                         Depth = Position.DepthEnum.FRONT,
                         Plane = Position.PlaneEnum.LEFT
-                    }
+                    },
+                    
                 };
             }
 
