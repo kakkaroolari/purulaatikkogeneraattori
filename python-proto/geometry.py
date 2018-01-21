@@ -183,7 +183,7 @@ def generate_footing(foundationPolygon, footingProfile, sockleProfile):
     
 def generate_offsetted_beams(foundationPolygon, profile, xy_offset, z_offset, material):
     #xy_offset = parse_width(profile)/2
-    centerlines = generate_offsetted_lines(foundationPolygon, xy_offset, z_offset)
+    centerlines = generate_offsetted_lines(foundationPolygon, xy_offset, z_offset, profile)
     beams = []
     for aa,bb in centerlines:
         beams.append({
@@ -193,24 +193,28 @@ def generate_offsetted_beams(foundationPolygon, profile, xy_offset, z_offset, ma
         })
     return beams
     
-def generate_offsetted_lines(foundationPolygon, xy_offset, z_offset):
-    mass_center = centroid(foundationPolygon)
+def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfile=None):
+    mass_center = centroid(master_polygon)
     footingCenter = []
 	#if instanceof(profile, float):
 	#	h_offset = profile
 	#else
 	#	h_offset = parse_width(profile)/2
-    for node in foundationPolygon:
+    for node in master_polygon:
         # todo: parse from profile
         endpoint = node.moveCloserTo(mass_center, xy_offset)
         endpoint.Translate(0, 0, z_offset)
         footingCenter.append(endpoint)
     footingLines = pairwise(footingCenter)
     polygonMidpoints = []
+    adjustEndPoints = xy_offset
+    if adjustByProfile is not None:
+        # footing pads have different widht than xy_offset
+        adjustEndPoints = parse_width(adjustByProfile)/2
     for start,end in footingLines:
         vector = start.GetVectorTo(end)
         #trace(start, )
-        corners = Point.Normalize(vector, xy_offset)
+        corners = Point.Normalize(vector, adjustEndPoints)
         #trace("start: {0}, end:{1}, direction: {2} translate vector: {3}".format(start, end, vector, corners,))
         #start.Translate(corners)
         #end.Translate(corners)
