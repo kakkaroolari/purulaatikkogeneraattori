@@ -71,10 +71,12 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile):
     #trace("sockle is: ", ', '.join([str(x) for x in polygon]))
     # TODO: make the layers bottom up and increase z offset
     z_offset = parse_height(footingProfile)
-    footing = generate_footing(master_polygon, footingProfile)
+	#xy_offset = parse_width(footingProfile)
+    footing = generate_footing(master_polygon, footingProfile, sockleProfile)
+	# todo: use previous profile for xy-plane offset
     sockle = generate_sockle(master_polygon, sockleProfile, z_offset)
     lower_reach = generate_lower_reach(master_polygon, 1000.0)
-    higher_reach = generate_lower_reach(master_polygon, 4750.0)
+    higher_reach = generate_lower_reach(master_polygon, 4700.0)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
 
     #trace("high: " + pprint.pformat(higher_reach))
@@ -100,7 +102,7 @@ def named_section(name, data):
     return { "section": name, "data": data }
 
 def generate_lower_reach(polygon, z_offset):
-    return generate_offsetted_beams(polygon, "100*100", z_offset, "Timber_Undefined")
+    return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset+50.0, "Timber_Undefined")
 
 def create_wood_at(point, height, profile):
     low_point = point.Clone()
@@ -113,7 +115,8 @@ def create_wood_at(point, height, profile):
     }
 
 def generate_wall_studs(polygon, z_offset, height):
-    centerlines = generate_offsetted_lines(polygon, "100*100", 1100.0)
+    xy_offset = 50.0
+    centerlines = generate_offsetted_lines(polygon, xy_offset, 1100.0)
     # run points around each lower wood k600
     studpoints = []
     for start,end in centerlines:
@@ -122,13 +125,16 @@ def generate_wall_studs(polygon, z_offset, height):
         length = start.distFrom(end)
         count = int((length-200.0)/600.0)
         # corner woods
-        studpoints.append(create_wood_at(start, height, "100*100"))
+        tuned_start = start.Clone()
+        towards = Point.Normalize(direction, -50)
+        tuned_start.Translate(towards)
+        studpoints.append(create_wood_at(tuned_start, height, "100*100"))
         #studpoints.append(create_wood_at(end, height, "100*100"))
         # normal 4x2's
-		#pitk‰sein‰ middle.top.left.. eh ts paskaa
-		#p‰‰tysein‰ Ver.Rot.Hor=down,back, middle
+		#pitkaseina middle.top.left.. eh ts paskaa
+		#paatyseina Ver.Rot.Hor=down,back, middle
         current = start.Clone()
-        towards = Point.Normalize(direction, 50)
+        towards = Point.Normalize(direction, -50)
         current.Translate(towards)
         towards = Point.Normalize(direction, 600)
         #trace("start: {0}, end:{1}, direction: {2}".format(start, end, direction))
@@ -139,8 +145,9 @@ def generate_wall_studs(polygon, z_offset, height):
             studpoints.append(create_wood_at(current, height, "50*100"))
     return studpoints
 
-def generate_sockle(foundationPolygon, profile, z_offset):
+def generate_sockle(foundationPolygon, sockleProfile, z_offset):
     sockleCenter = []
+
     for node in foundationPolygon:
         # kinda cloning
         clonepoint = node.Clone()
@@ -148,16 +155,35 @@ def generate_sockle(foundationPolygon, profile, z_offset):
         sockleCenter.append(clonepoint)
     # todo: closedloop or not..
     return [{
-        "profile": profile,
+        "profile": sockleProfile,
         "points": sockleCenter,
         "material": "Concrete_Undefined"
     }]
 
-def generate_footing(foundationPolygon, profile):
-    return generate_offsetted_beams(foundationPolygon, profile, 0, "Concrete_Undefined")
+def generate_footing(foundationPolygon, footingProfile, sockleProfile):
+	# footing is not centerline, but polybeam concrete panel is outer limits
+
+    # move sockle to footing center, sockle polygon is not centerline but
+	# outer limits to get the polybeam fully casted in closed loop corner.
+    #footingWidth = parse_width(footingProfile)
+    sockleWidth = parse_width(sockleProfile)
+    xy_offset = sockleWidth/2
+    footingCenterZ = parse_height(footingProfile)/2
+    #hack_profile = xy_offset + "*"
+    #centerlines = generate_offsetted_lines(foundationPolygon, xy_offset, footingCenterZ)
+    #beams = []
+    #for aa,bb in centerlines:
+    #    beams.append({
+    #        "profile": footingProfile,
+    #        "points": [aa, bb],
+    #        "material": "Concrete_Undefined"
+    #    })
+    #return beams
+    return generate_offsetted_beams(foundationPolygon, footingProfile, xy_offset, footingCenterZ, "Concrete_Undefined")
     
-def generate_offsetted_beams(foundationPolygon, profile, z_offset, material):
-    centerlines = generate_offsetted_lines(foundationPolygon, profile, z_offset)
+def generate_offsetted_beams(foundationPolygon, profile, xy_offset, z_offset, material):
+    #xy_offset = parse_width(profile)/2
+    centerlines = generate_offsetted_lines(foundationPolygon, xy_offset, z_offset)
     beams = []
     for aa,bb in centerlines:
         beams.append({
@@ -167,21 +193,24 @@ def generate_offsetted_beams(foundationPolygon, profile, z_offset, material):
         })
     return beams
     
-def generate_offsetted_lines(foundationPolygon, profile, z_offset):
+def generate_offsetted_lines(foundationPolygon, xy_offset, z_offset):
     mass_center = centroid(foundationPolygon)
     footingCenter = []
-    h_offset = parse_width(profile)/2
+	#if instanceof(profile, float):
+	#	h_offset = profile
+	#else
+	#	h_offset = parse_width(profile)/2
     for node in foundationPolygon:
         # todo: parse from profile
-        endpoint = node.moveCloserTo(mass_center, h_offset)
+        endpoint = node.moveCloserTo(mass_center, xy_offset)
         endpoint.Translate(0, 0, z_offset)
         footingCenter.append(endpoint)
     footingLines = pairwise(footingCenter)
-    footings = []
+    polygonMidpoints = []
     for start,end in footingLines:
         vector = start.GetVectorTo(end)
         #trace(start, )
-        corners = Point.Normalize(vector, h_offset)
+        corners = Point.Normalize(vector, xy_offset)
         #trace("start: {0}, end:{1}, direction: {2} translate vector: {3}".format(start, end, vector, corners,))
         #start.Translate(corners)
         #end.Translate(corners)
@@ -189,13 +218,13 @@ def generate_offsetted_lines(foundationPolygon, profile, z_offset):
         bb = end.Clone()
         aa.Translate(corners)
         bb.Translate(corners)
-        footings.append((aa,bb,))
+        polygonMidpoints.append((aa,bb,))
         #footings.append({
         #    "profile": profile,
         #    "points": [aa, bb],
         #    "material": material
         #})
-    return footings
+    return polygonMidpoints
 
 def trace(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)

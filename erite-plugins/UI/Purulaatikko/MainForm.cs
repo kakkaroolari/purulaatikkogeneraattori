@@ -11,6 +11,7 @@ namespace EritePlugins.UI.Purulaatikko
 {
     /*
      * cp ~/devel/purulaatikkogeneraattori/erite-plugins/Common/bin/Debug/EritePlugins.Common.dll ~/devel/purulaatikkogeneraattori/erite-plugins/Core/bin/Debug/EritePlugins.Core.dll ~/devel/purulaatikkogeneraattori/erite-plugins/UI/bin/Debug/EritePlugins.UI.dll ~/devel/Tekla/
+     * cp ~/source/repos/purulaatikkogeneraattori/erite-plugins/Core/bin/Debug/EritePlugins.Core.dll  ~/devel/Tekla/
      */
     public partial class MainForm : PluginFormBase
    {

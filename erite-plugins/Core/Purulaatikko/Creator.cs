@@ -143,6 +143,12 @@ namespace EritePlugins.Core.Purulaatikko
                 {
                     StartPoint = beamSpec.points[0].ToTS(),
                     EndPoint = beamSpec.points[1].ToTS(),
+                    Position = new Position()
+                    {
+                        Depth = Position.DepthEnum.MIDDLE,
+                        Plane = Position.PlaneEnum.MIDDLE
+                        //Rotation = 
+                    }
                 };
             }
             else
@@ -152,9 +158,13 @@ namespace EritePlugins.Core.Purulaatikko
                     Contour = new Contour()
                     {
                         ContourPoints = new ArrayList(beamSpec.points.Select(p => new ContourPoint(p.ToTS(), null)).ToList())
+                    },
+                    Position = new Position()
+                    {
+                        Depth = Position.DepthEnum.FRONT,
+                        Plane = Position.PlaneEnum.LEFT
                     }
                 };
-                plane = Position.PlaneEnum.LEFT;
             }
 
             beam.Material = ChainSaw.FromString(beamSpec.material);
@@ -162,11 +172,11 @@ namespace EritePlugins.Core.Purulaatikko
             {
                 ProfileString = beamSpec.profile
             };
-            beam.Position = new Position
-            {
-                Depth = Position.DepthEnum.FRONT,
-                Plane = plane
-            };
+            //beam.Position = new Position
+            //{
+            //    Depth = Position.DepthEnum.,
+            //    Plane = plane
+            //};
             return beam;
         }
 

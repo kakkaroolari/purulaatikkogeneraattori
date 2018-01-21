@@ -47,12 +47,12 @@ class Point( object ):
         copy.z = point.z - copy.z
         return copy
 
-    def Normalize(vector, len=1):
+    def Normalize(vector, lenght=1):
         vmag = Point.magnitude(vector)
         normalized = Point(vector.x/vmag, vector.y/vmag, vector.z/vmag)
-        normalized.x *= len
-        normalized.y *= len
-        normalized.z *= len
+        normalized.x *= lenght
+        normalized.y *= lenght
+        normalized.z *= lenght
         return normalized
 
     #def default(self, obj):
