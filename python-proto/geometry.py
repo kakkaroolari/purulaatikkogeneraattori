@@ -1,6 +1,7 @@
 # Don't know my licence. ask.
 from __future__ import print_function
 import sys
+import os
 import pprint
 from point import Point
 import itertools #import izip
@@ -100,7 +101,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     higher_reach = generate_lower_reach(master_polygon, 4750.0)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
     # bit different
-    roof_woods = generate_roof_studs(roof_polygon, 4750.0, centerline, roof_angle)
+    roof_woods = generate_roof_studs(roof_polygon, 4800.0, centerline, roof_angle)
 
     #trace("high: " + pprint.pformat(higher_reach))
     #trace("studs: " + pprint.pformat(wall_studs))
@@ -120,6 +121,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
             named_section("roof_woods", roof_woods)
         ], jsonfile, cls=MyEncoder)
         #jsonfile.write(pprint.pformat(combined_data))
+    print("wrote:\n\b", os.getcwd()+os.path.sep+"data.json")
 
 def named_section(name, data):
     # todo: can add assembly meta, classes etc.
@@ -128,10 +130,9 @@ def named_section(name, data):
 def generate_lower_reach(polygon, z_offset):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset+50.0, "Timber_Undefined")
 
-def create_wood_at(point, height, profile, rotation=None):
+def create_wood_at(point, point2, profile, rotation=None):
     low_point = point.Clone()
-    high_point = low_point.Clone()
-    high_point.Translate(height)
+    high_point = point2.Clone()
     return {
         "profile": profile,
         "rotation": rotation,
@@ -166,7 +167,9 @@ def generate_roof_studs(master_polygon, z_offset, centerline, roof_angle):
     for i in range(count):
         #trace("counting: ", i)
         current.Translate(towards)
-        roofpoints.append(create_wood_at(current, Point(0,half_width,roofelevation), "50*125", rotation))
+        current2 = current.Clone()
+        current2.Translate(0,half_width,roofelevation)
+        roofpoints.append(create_wood_at(current, current2, "50*125", rotation))
         #another = current.Clone()
         #another.x = end.x
         #roofpoints.append(create_wood_at(another, Point(0,half_width,roofelevation), "50*125", rotation))
@@ -187,39 +190,40 @@ def generate_wall_studs(polygon, z_offset, height):
         length = start.distFrom(end)
         count = int((length-200.0)/600.0)
         # corner woods
-        tuned_start = start.Clone()
-        towards = Point.Normalize(direction, -50)
-        tuned_start.Translate(towards)
-        studpoints.append(create_wood_at(tuned_start, Point(0,0,height), "100*100", rotation))
-        #studpoints.append(create_wood_at(end, height, "100*100"))
-        # normal 4x2's
-        current = start.Clone()
-        towards = Point.Normalize(direction, -50)
-        current.Translate(towards)
-        towards = Point.Normalize(direction, 600)
-        #trace("start: {0}, end:{1}, direction: {2}".format(start, end, direction))
-        for i in range(count):
-            #trace("counting: ", i)
-            current.Translate(towards)
-            studpoints.append(create_wood_at(current, Point(0,0,height), "50*100", rotation))
+        
+        wood_grid = point_grid(start, direction, count, -50, 600)
+        #studpoints.append(create_wood_at(tuned_start, Point(0,0,height), "100*100", rotation))
+        
+        for ii in range(len(wood_grid)):
+            profile = "50*100"
+            if ii == 0:
+                profile = "100*100"
+            lowpoint = wood_grid[ii]
+            highpoint = lowpoint.Clone()
+            highpoint.Translate(0,0,height)
+            studpoints.append(create_wood_at(lowpoint, highpoint, profile, rotation))
     return studpoints
 
-def point_grid(startpoint, direction, count, first_offset, create_first):
+def point_grid(startpoint, dir_vector, count, first_offset, kdist):
     # UH, frakkit. needs running two points along...not height to reuse
     # todo: refactor
     grid = []
-    tuned_start = start.Clone()
-    towards = Point.Normalize(direction, -50)
-    tuned_start.Translate(towards)
+    direction = dir_vector.Clone()
+    #tuned_start = start.Clone()
+    #if first_offset > sys.float_info.epsilon:
+    #    towards = Point.Normalize(direction, first_offset)
+    #    tuned_start.Translate(towards)
     #### studpoints.append(create_wood_at(tuned_start, height, "100*100", rotation))
-    if create_first is not None:
-        grid.append
+    #if create_first is not None:
+    #    grid.append
     #studpoints.append(create_wood_at(end, height, "100*100"))
     # normal 4x2's
-    current = start.Clone()
-    towards = Point.Normalize(direction, -50)
-    current.Translate(towards)
-    towards = Point.Normalize(direction, 600)
+    current = startpoint.Clone()
+    if abs(first_offset) > 0.5:
+        towards = Point.Normalize(direction, first_offset)
+        current.Translate(towards)
+    grid.append(current.Clone())
+    towards = Point.Normalize(direction, kdist)
     #trace("start: {0}, end:{1}, direction: {2}".format(start, end, direction))
     for i in range(count):
         #trace("counting: ", i)
