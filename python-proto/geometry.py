@@ -65,20 +65,34 @@ def generate_loop(grid_x, grid_y, pairs):
         master_polygon.append(edge)
     return master_polygon
 
+def is_closed_loop(grid):
+    closed = grid[0].Compare(grid[-1])
+    #trace("closed: ", closed)
+    return closed
+
 def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
     pairs = [
         (0,1),
-        (1,1),
-        (1,0),
-        (2,0),
-        (2,1),
+        #(1,1),
+        #(1,0),
+        #(2,0),
+        #(2,1),
         (3,1),
         (3,2),
         (0,2),
         (0,1)
     ]
     master_polygon = generate_loop(grid_x, grid_y, pairs)
+    #trace(pprint.pformat(master_polygon))
+
+    porch = [
+        (1,1),
+        (1,0),
+        (2,0),
+        (2,1)
+    ]
+    porch_polygon = generate_loop(grid_x, grid_y, porch)
 
     roof_pairs = [
         (0,1),
@@ -93,13 +107,21 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     #trace("sockle is: ", ', '.join([str(x) for x in polygon]))
     # TODO: make the layers bottom up and increase z offset
     z_offset = parse_height(footingProfile)
+	# todo: use previous profile for xy-plane offset
 	#xy_offset = parse_width(footingProfile)
     footing = generate_footing(master_polygon, footingProfile, sockleProfile)
-	# todo: use previous profile for xy-plane offset
     sockle = generate_sockle(master_polygon, sockleProfile, z_offset)
     lower_reach = generate_lower_reach(master_polygon, 1000.0)
     higher_reach = generate_lower_reach(master_polygon, 4750.0)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
+
+    # porch
+    footing += generate_footing(porch_polygon, footingProfile, sockleProfile)
+    sockle += generate_sockle(porch_polygon, sockleProfile, z_offset)
+    lower_reach += generate_lower_reach(porch_polygon, 1000.0)
+    higher_reach += generate_lower_reach(porch_polygon, 3750.0)
+    wall_studs += generate_wall_studs(porch_polygon, 1000.0, 2650)
+
     # bit different
     roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
 
@@ -199,6 +221,7 @@ def generate_wall_studs(polygon, z_offset, height):
     centerlines = generate_offsetted_lines(polygon, xy_offset, 1100.0)
     # run points around each lower wood k600
     studpoints = []
+    first_item = True
     for start,end in centerlines:
         # do one wall line
         direction = start.GetVectorTo(end)
@@ -207,7 +230,10 @@ def generate_wall_studs(polygon, z_offset, height):
         length = start.distFrom(end)
         count = int((length-200.0)/600.0)
         # stud grid along one edge
-        wood_grid = point_grid(start, direction, count, -50, 600)        
+        first_offset = -50
+        if first_item and not is_closed_loop(polygon):
+            first_offset = 0
+        wood_grid = point_grid(start, direction, count, first_offset, 600)        
         for ii in range(len(wood_grid)):
             # normal 4x2's
             profile = "50*100"
@@ -217,6 +243,7 @@ def generate_wall_studs(polygon, z_offset, height):
             lowpoint = wood_grid[ii]
             highpoint = lowpoint.CopyLinear(0,0,height)
             studpoints.append(create_wood_at(lowpoint, highpoint, profile, rotation))
+        first_item = False
     return studpoints
 
 def point_grid(startpoint, dir_vector, count, first_offset, kdist):
@@ -297,6 +324,8 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
     if adjustByProfile is not None:
         # footing pads have different widht than xy_offset
         adjustEndPoints = parse_width(adjustByProfile)/2
+    #undisclosed_ending = 
+    first_item = True
     for start,end in footingLines:
         vector = start.GetVectorTo(end)
         #trace(start, )
@@ -306,14 +335,21 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
         #end.Translate(corners)
         aa = start.Clone()
         bb = end.Clone()
-        aa.Translate(corners)
+        if not first_item or is_closed_loop(master_polygon):
+            aa.Translate(corners)
+        else:
+            trace("------------ skip 1")
+        #if not is_last_item(master_polygon, bb) and is_closed_loop(master_polygon):
         bb.Translate(corners)
+        #else:
+        #    trace("------------ skip -1")
         polygonMidpoints.append((aa,bb,))
         #footings.append({
         #    "profile": profile,
         #    "points": [aa, bb],
         #    "material": material
         #})
+        first_item = False
     return polygonMidpoints
 
 def trace(*args, **kwargs):

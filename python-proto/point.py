@@ -11,6 +11,11 @@ class Point( object ):
     def magnitude(v):
         return math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z)
 
+    def Compare(self, other):
+        return (abs(self.x - other.x) < 0.5 and
+                abs(self.y - other.y) < 0.5 and
+                abs(self.z - other.z) < 0.5 )
+
     def moveCloserTo(self, point, amount):
         new_x = self.x
         new_y = self.y
