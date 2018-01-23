@@ -38,25 +38,28 @@ namespace EritePlugins.Core.Purulaatikko
     //    public JsSection[] Property1 { get; set; }
     //}
 
-    public class JsPart
-    {
-        public string profile { get; set; }
-        public JsPoint[] points { get; set; }
-        public int? rotation { get; set; }
-        public string material { get; set; }
-    }
-
-    public class JsPoint
-    {
-        public double x { get; set; }
-        public double y { get; set; }
-        public double z { get; set; }
-    }
 
     public class JsSection
     {
         public string section { get; set; }
-        public JsPart[] data { get; set; }
+        public JsPart[] parts { get; set; }
+        public object fitplane { get; set; }
+    }
+
+    public class JsPart
+    {
+        public string profile { get; set; }
+        public int? rotation { get; set; }
+        public JsPoint[] points { get; set; }
+        public string material { get; set; }
+        public int? klass { get; set; }
+    }
+
+    public class JsPoint
+    {
+        public float x { get; set; }
+        public float y { get; set; }
+        public float z { get; set; }
     }
 
 

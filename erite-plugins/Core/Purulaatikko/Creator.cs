@@ -53,7 +53,7 @@ namespace EritePlugins.Core.Purulaatikko
                 {
                     if (null == partSpec) continue;
                     int warn = partCounter;
-                    ForNowCreateAllBeams(partSpec.data, ref partCounter, partSpec.section);
+                    ForNowCreateAllBeams(partSpec.parts, ref partCounter, partSpec.section);
                     if (warn == partCounter)
                     {
                         System.Diagnostics.Debug.WriteLine($"[ERITE] No elements in section {partSpec.section}");
@@ -177,6 +177,10 @@ namespace EritePlugins.Core.Purulaatikko
             {
                 ProfileString = beamSpec.profile
             };
+            if (null != beamSpec?.klass)
+            {
+                beam.Class = beamSpec.klass.ToString();
+            }
             //beam.Position = new Position
             //{
             //    Depth = Position.DepthEnum.,

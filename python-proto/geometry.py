@@ -115,17 +115,29 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
         json.dump([
             named_section("footing", footing),
             named_section("sockle", sockle),
-            named_section("lower_reach", lower_reach),
-            named_section("higher_reach", higher_reach),
-            named_section("wall_studs", wall_studs),
-            named_section("roof_woods", roof_woods)
+            named_section("lower_reach", lower_reach, 4),
+            named_section("higher_reach", higher_reach, 3),
+            named_section("wall_studs", wall_studs, 3),
+            named_section("roof_woods", roof_woods, 99)
         ], jsonfile, cls=MyEncoder)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd()+os.path.sep+"data.json")
 
-def named_section(name, data):
+def named_section(name, part_list, ts_class=None):
     # todo: can add assembly meta, classes etc.
-    return { "section": name, "data": data }
+    if ts_class is not None:
+        for part in part_list:
+            part["klass"] = ts_class
+    return { "section": name, "parts": part_list, "fitplane": None }
+
+def get_part_data(profile, rotation, points, material, ts_class=None):
+    return {
+        "profile": profile,
+        "rotation": rotation,
+        "points": points,
+        "material": material,
+        "klass": ts_class
+    }
 
 def generate_lower_reach(polygon, z_offset):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset+50.0, "Timber_Undefined")
@@ -133,12 +145,7 @@ def generate_lower_reach(polygon, z_offset):
 def create_wood_at(point, point2, profile, rotation=None):
     low_point = point.Clone()
     high_point = point2.Clone()
-    return {
-        "profile": profile,
-        "rotation": rotation,
-        "points": [low_point, high_point],
-        "material": "Timber_Undefined"
-    }
+    return get_part_data(profile, rotation, [low_point, high_point], "Timber_Undefined")
 
 def generate_roof_studs(master_polygon, z_offset, centerline, roof_angle):
     overscan = 600.0 # negative to expand
@@ -236,12 +243,7 @@ def generate_sockle(foundationPolygon, sockleProfile, z_offset):
         clonepoint.Translate(0, 0, z_offset)
         sockleCenter.append(clonepoint)
     # todo: closedloop or not..
-    return [{
-        "profile": sockleProfile,
-        "rotation": None,
-        "points": sockleCenter,
-        "material": "Concrete_Undefined"
-    }]
+    return [get_part_data(sockleProfile, None, sockleCenter, "Concrete_Undefined", 1)]
 
 def generate_footing(foundationPolygon, footingProfile, sockleProfile):
 	# footing is not centerline, but polybeam concrete panel is outer limits
@@ -257,12 +259,7 @@ def generate_offsetted_beams(foundationPolygon, profile, xy_offset, z_offset, ma
     centerlines = generate_offsetted_lines(foundationPolygon, xy_offset, z_offset, profile)
     beams = []
     for aa,bb in centerlines:
-        beams.append({
-            "profile": profile,
-            "rotation": None,
-            "points": [aa, bb],
-            "material": material
-        })
+        beams.append(get_part_data(profile, None, [aa, bb], material))
     return beams
     
 def extend_or_subtract(polygon, xy_offset, z_offset):
