@@ -84,7 +84,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
         (0,1),
         (3,1),
         (3,2),
-        (1,2),
+        (0,2),
         (0,1)
     ]
     roof_polygon = generate_loop(grid_x, grid_y, roof_pairs)
@@ -101,7 +101,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     higher_reach = generate_lower_reach(master_polygon, 4750.0)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
     # bit different
-    roof_woods = generate_roof_studs(roof_polygon, 4850.0, centerline, roof_angle)
+    roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
 
     #trace("high: " + pprint.pformat(higher_reach))
     #trace("studs: " + pprint.pformat(wall_studs))
@@ -158,26 +158,35 @@ def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
     mainwall = begin.GetVectorTo(end)
     mainwall_length = begin.distFrom(end)
     holppa = 125.0
+    last = (mainwall_length-2*holppa)%900.0
     count = int((mainwall_length-2*holppa)/900.0)
-    sidewall = begin.distFrom(roof_polygon[-2])
+    othercorner = roof_polygon[-2].Clone()
+    othercorner.Translate(0, 0, z_offset)
+    trace("begin: ", begin, " other: ", othercorner)
+    sidewall = begin.distFrom(othercorner)
     half_width = sidewall/2 #3600.0 #roof_polygon[-2].distFrom(roof_polygon[-1])
     roofelevation = half_width*math.cos(math.radians(roof_angle))
     trace("halflife: ", half_width, " dist: ", mainwall_length, " elev: ", roofelevation)
     # todo: much same as wall panel framing
-    wood_grid = point_grid(begin, mainwall, count, holppa, 900)
+    lowside = create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation)
+    highside = create_one_side_trusses(othercorner, mainwall, mainwall_length, count, last, holppa, -half_width, roofelevation)
+    return lowside + highside
+
+def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation):
+    direction = mainwall.Clone()
+    pt_array = point_grid(begin, direction, count, holppa, 900)
     # stupid way to add last roof truss
-    last = (mainwall_length-2*holppa)%900.0-25.0
-    towards = Point.Normalize(mainwall, last)
-    last_ninja = wood_grid[-1].Clone()
+    towards = Point.Normalize(direction, last)
+    last_ninja = pt_array[-1].Clone()
     last_ninja.Translate(towards)
-    wood_grid.append(last_ninja)
-    roofpoints = []
-    for ii in range(len(wood_grid)):
-        lowpoint = wood_grid[ii]
+    pt_array.append(last_ninja)
+    roofparts = []
+    for ii in range(len(pt_array)):
+        lowpoint = pt_array[ii]
         highpoint = lowpoint.CopyLinear(0, half_width, roofelevation)
         # roof truss 5x2's
-        roofpoints.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
-    return roofpoints
+        roofparts.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
+    return roofparts
 
 def generate_wall_studs(polygon, z_offset, height):
     # todo: purulaatikko constant
