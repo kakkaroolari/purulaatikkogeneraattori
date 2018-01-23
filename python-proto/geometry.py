@@ -154,7 +154,6 @@ def generate_roof_studs(master_polygon, z_offset, centerline, roof_angle):
     roofelevation = half_width*math.cos(math.radians(roof_angle))
     trace("halflife: ", half_width, " dist: ", length)
     # todo: much same as wall panel framing
-    #tuned_start = begin.clone()
     # roof truss 5x2's
     current = begin.Clone()
     towards = Point.Normalize(direction, holppa)
@@ -195,8 +194,10 @@ def generate_wall_studs(polygon, z_offset, height):
         #studpoints.append(create_wood_at(tuned_start, Point(0,0,height), "100*100", rotation))
         
         for ii in range(len(wood_grid)):
+            # normal 4x2's
             profile = "50*100"
             if ii == 0:
+                # corners have 4x4
                 profile = "100*100"
             lowpoint = wood_grid[ii]
             highpoint = lowpoint.Clone()
@@ -205,18 +206,8 @@ def generate_wall_studs(polygon, z_offset, height):
     return studpoints
 
 def point_grid(startpoint, dir_vector, count, first_offset, kdist):
-    # UH, frakkit. needs running two points along...not height to reuse
-    # todo: refactor
     grid = []
     direction = dir_vector.Clone()
-    #tuned_start = start.Clone()
-    #if first_offset > sys.float_info.epsilon:
-    #    towards = Point.Normalize(direction, first_offset)
-    #    tuned_start.Translate(towards)
-    #### studpoints.append(create_wood_at(tuned_start, height, "100*100", rotation))
-    #if create_first is not None:
-    #    grid.append
-    #studpoints.append(create_wood_at(end, height, "100*100"))
     # normal 4x2's
     current = startpoint.Clone()
     if abs(first_offset) > 0.5:
