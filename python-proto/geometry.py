@@ -185,14 +185,10 @@ def generate_wall_studs(polygon, z_offset, height):
         direction = start.GetVectorTo(end)
         rotation = direction_to_rotation(direction)
         trace("beam rot type: ", type(rotation))
-        #beamcenter = direction.Clone()
         length = start.distFrom(end)
         count = int((length-200.0)/600.0)
-        # corner woods
-        
-        wood_grid = point_grid(start, direction, count, -50, 600)
-        #studpoints.append(create_wood_at(tuned_start, Point(0,0,height), "100*100", rotation))
-        
+        # stud grid along one edge
+        wood_grid = point_grid(start, direction, count, -50, 600)        
         for ii in range(len(wood_grid)):
             # normal 4x2's
             profile = "50*100"
@@ -200,8 +196,7 @@ def generate_wall_studs(polygon, z_offset, height):
                 # corners have 4x4
                 profile = "100*100"
             lowpoint = wood_grid[ii]
-            highpoint = lowpoint.Clone()
-            highpoint.Translate(0,0,height)
+            highpoint = lowpoint.CopyLinear(0,0,height)
             studpoints.append(create_wood_at(lowpoint, highpoint, profile, rotation))
     return studpoints
 
@@ -250,23 +245,11 @@ def generate_sockle(foundationPolygon, sockleProfile, z_offset):
 
 def generate_footing(foundationPolygon, footingProfile, sockleProfile):
 	# footing is not centerline, but polybeam concrete panel is outer limits
-
     # move sockle to footing center, sockle polygon is not centerline but
 	# outer limits to get the polybeam fully casted in closed loop corner.
-    #footingWidth = parse_width(footingProfile)
     sockleWidth = parse_width(sockleProfile)
     xy_offset = sockleWidth/2
     footingCenterZ = parse_height(footingProfile)/2
-    #hack_profile = xy_offset + "*"
-    #centerlines = generate_offsetted_lines(foundationPolygon, xy_offset, footingCenterZ)
-    #beams = []
-    #for aa,bb in centerlines:
-    #    beams.append({
-    #        "profile": footingProfile,
-    #        "points": [aa, bb],
-    #        "material": "Concrete_Undefined"
-    #    })
-    #return beams
     return generate_offsetted_beams(foundationPolygon, footingProfile, xy_offset, footingCenterZ, "Concrete_Undefined")
     
 def generate_offsetted_beams(foundationPolygon, profile, xy_offset, z_offset, material):
@@ -342,6 +325,9 @@ if __name__ == "__main__":
          After completion, implement geometry generator in Tekla..
 
          ..to view what has changed.
+
+         TODO list
+         - paatypuut pitkiksi
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
@@ -354,3 +340,4 @@ if __name__ == "__main__":
 
     #trace("CONVERTED:\n" + pprint.pformat(attr_dict))
     write_out(grid_x, grid_y, sockle, footing, centerline, 36.64)
+

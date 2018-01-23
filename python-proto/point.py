@@ -33,9 +33,13 @@ class Point( object ):
         self.y += y
         self.z += z
 
-    #frakme
-    #def Translate(self, point):
-    #    self.Translate(point.x, point.y, point.z)
+    # helper
+    def CopyLinear(self, x, y=None, z=None):
+        if isinstance(x, Point):
+            (x,y,z) = (x.x, x.y, x.z)
+        copy = self.Clone()
+        copy.Translate(x, y, z)
+        return copy
 
     def Clone(self):
         return self.moveCloserTo(Point(0.00,0.00,0.00), 0.0)
