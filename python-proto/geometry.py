@@ -118,7 +118,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("roof_woods", roof_woods, 99)
+            named_section("roof_woods", roof_woods, 12)
         ], jsonfile, cls=MyEncoder)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd()+os.path.sep+"data.json")
@@ -164,15 +164,19 @@ def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
     othercorner.Translate(0, 0, z_offset)
     trace("begin: ", begin, " other: ", othercorner)
     sidewall = begin.distFrom(othercorner)
-    half_width = sidewall/2 #3600.0 #roof_polygon[-2].distFrom(roof_polygon[-1])
+    # ylajuoksun linja shiftataan harjakorkeutaan
+    half_width = sidewall/2
     roofelevation = half_width*math.cos(math.radians(roof_angle))
+    # ylatukipuun linja siftataan raystaslinjaksi
+    halflife2 = 600.0
+    roofdeclination = -halflife2*math.cos(math.radians(roof_angle))
     trace("halflife: ", half_width, " dist: ", mainwall_length, " elev: ", roofelevation)
     # todo: much same as wall panel framing
-    lowside = create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation)
-    highside = create_one_side_trusses(othercorner, mainwall, mainwall_length, count, last, holppa, -half_width, roofelevation)
+    lowside = create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation, -halflife2, roofdeclination)
+    highside = create_one_side_trusses(othercorner, mainwall, mainwall_length, count, last, holppa, -half_width, roofelevation, halflife2, roofdeclination)
     return lowside + highside
 
-def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation):
+def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation, halflife2, roofdeclination):
     direction = mainwall.Clone()
     pt_array = point_grid(begin, direction, count, holppa, 900)
     # stupid way to add last roof truss
@@ -184,6 +188,7 @@ def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holpp
     for ii in range(len(pt_array)):
         lowpoint = pt_array[ii]
         highpoint = lowpoint.CopyLinear(0, half_width, roofelevation)
+        lowpoint.Translate(0, halflife2, roofdeclination)
         # roof truss 5x2's
         roofparts.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
     return roofparts
@@ -332,6 +337,7 @@ if __name__ == "__main__":
 
          TODO list
          - paatypuut pitkiksi
+         - sokkeli, closed loop vs. open (different end)
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
