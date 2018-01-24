@@ -71,13 +71,18 @@ def is_closed_loop(grid):
     return closed
 
 def get_ceiling(current, start, fullwidth, roofangle):
-	dist_to_start = current.distFrom(start)
-	coeff = math.tan(math.radians(roof_angle))
-	if dist_to_start < fullwidth:
-		elevation = dist_to_start * coeff
-	else:
-		elevation = (fullwidth - dist_to_start) * coeff
-	return elevation
+    dist_to_start = current.distFrom(start)
+    coeff = math.tan(math.radians(roofangle))
+    inner_width = fullwidth - 100 # todo profile
+    if dist_to_start < inner_width/2:
+        elevation = dist_to_start * coeff
+    else:
+        elevation = (inner_width - dist_to_start) * coeff
+    return elevation
+
+def is_short_side(p1, p2):
+    # TODO: assumes purulaatikko always oriented same
+    return abs(p2.y-p1.y) > 5000
 
 def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
@@ -125,7 +130,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     lower_reach = generate_lower_reach(master_polygon, 1000.0)
     higher_reach = generate_lower_reach(high_polygon1, 4750.0, mass_center)
     higher_reach += generate_lower_reach(high_polygon2, 4750.0, mass_center)
-    wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
+    wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650, roof_angle)
 
     # porch
     footing += generate_footing(porch_polygon, footingProfile, sockleProfile)
@@ -225,7 +230,7 @@ def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holpp
         roofparts.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
     return roofparts
 
-def generate_wall_studs(polygon, z_offset, height):
+def generate_wall_studs(polygon, z_offset, height, roofangle=None):
     # todo: purulaatikko constant
     xy_offset = 50.0
     centerlines = generate_offsetted_lines(polygon, xy_offset, 1100.0)
@@ -233,6 +238,7 @@ def generate_wall_studs(polygon, z_offset, height):
     studpoints = []
     first_item = True
     for start,end in centerlines:
+        wall_begin = start.Clone()
         # do one wall line
         direction = start.GetVectorTo(end)
         rotation = direction_to_rotation(direction)
@@ -243,15 +249,19 @@ def generate_wall_studs(polygon, z_offset, height):
         first_offset = -50
         if first_item and not is_closed_loop(polygon):
             first_offset = 0
-        wood_grid = point_grid(start, direction, count, first_offset, 600)        
+        wood_grid = point_grid(start, direction, count, first_offset, 600)
+        use_ceiling = is_short_side(start,end) and roofangle # todo something smarter
         for ii in range(len(wood_grid)):
+            lowpoint = wood_grid[ii].Clone()
+            current_height = height
             # normal 4x2's
             profile = "50*100"
             if ii == 0:
                 # corners have 4x4
                 profile = "100*100"
-            lowpoint = wood_grid[ii]
-            highpoint = lowpoint.CopyLinear(0,0,height)
+            elif use_ceiling:
+                current_height = height + get_ceiling(lowpoint, wall_begin, length, roofangle) + 250
+            highpoint = lowpoint.CopyLinear(0,0,current_height)
             studpoints.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         first_item = False
     return studpoints
@@ -397,7 +407,10 @@ if __name__ == "__main__":
 
          TODO list
          - paatypuut pitkiksi
-         - sokkeli, closed loop vs. open (different end)
+         - lattiajuoksut
+         - valipohjavasat
+         - ullakko ristikko
+         - 
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
