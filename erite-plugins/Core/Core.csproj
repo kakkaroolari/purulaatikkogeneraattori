@@ -98,6 +98,17 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\python-proto\constantdict.py">
+      <Link>python\constantdict.py</Link>
+    </Content>
+    <Content Include="..\..\python-proto\geometry.py">
+      <Link>python\geometry.py</Link>
+    </Content>
+    <Content Include="..\..\python-proto\point.py">
+      <Link>python\point.py</Link>
+    </Content>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
