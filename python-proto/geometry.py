@@ -1,4 +1,4 @@
-# Don't know my licence. ask.
+# Don't know my licence.  ask.
 from __future__ import print_function
 import sys
 import os
@@ -34,7 +34,7 @@ def toDistances(distanceList):
     sum = 0.0
     absolutes = []
     for dd in distanceList:
-        absolutes.append(dd+sum)
+        absolutes.append(dd + sum)
         sum += dd
     return absolutes
 
@@ -70,10 +70,18 @@ def is_closed_loop(grid):
     #trace("closed: ", closed)
     return closed
 
+def get_ceiling(current, start, fullwidth, roofangle):
+	dist_to_start = current.distFrom(start)
+	coeff = math.tan(math.radians(roof_angle))
+	if dist_to_start < fullwidth:
+		elevation = dist_to_start * coeff
+	else:
+		elevation = (fullwidth - dist_to_start) * coeff
+	return elevation
+
 def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
-    pairs = [
-        (0,1),
+    pairs = [(0,1),
         #(1,1),
         #(1,0),
         #(2,0),
@@ -81,29 +89,32 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
         (3,1),
         (3,2),
         (0,2),
-        (0,1)
-    ]
+        (0,1)]
     master_polygon = generate_loop(grid_x, grid_y, pairs)
     #trace(pprint.pformat(master_polygon))
 
-    porch = [
-        (1,1),
+    porch = [(1,1),
         (1,0),
         (2,0),
-        (2,1)
-    ]
+        (2,1)]
     porch_polygon = generate_loop(grid_x, grid_y, porch)
 
-    roof_pairs = [
-        (0,1),
+    roof_pairs = [(0,1),
         (3,1),
         (3,2),
         (0,2),
-        (0,1)
-    ]
+        (0,1)]
     roof_polygon = generate_loop(grid_x, grid_y, roof_pairs)
 
-    trace("centroid is: ", centroid(master_polygon))
+    high_pairs1 = [(0,1),
+        (3,1)]
+    high_pairs2 = [(0,2),
+        (3,2)]
+    high_polygon1 = generate_loop(grid_x, grid_y, high_pairs1)
+    high_polygon2 = generate_loop(grid_x, grid_y, high_pairs2)
+
+    mass_center = centroid(master_polygon)
+    trace("centroid is: ", mass_center)
     #trace("sockle is: ", ', '.join([str(x) for x in polygon]))
     # TODO: make the layers bottom up and increase z offset
     z_offset = parse_height(footingProfile)
@@ -112,7 +123,8 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     footing = generate_footing(master_polygon, footingProfile, sockleProfile)
     sockle = generate_sockle(master_polygon, sockleProfile, z_offset)
     lower_reach = generate_lower_reach(master_polygon, 1000.0)
-    higher_reach = generate_lower_reach(master_polygon, 4750.0)
+    higher_reach = generate_lower_reach(high_polygon1, 4750.0, mass_center)
+    higher_reach += generate_lower_reach(high_polygon2, 4750.0, mass_center)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650)
 
     # porch
@@ -134,16 +146,14 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
     
     with open('data.json', 'w') as jsonfile:
-        json.dump([
-            named_section("footing", footing),
+        json.dump([named_section("footing", footing),
             named_section("sockle", sockle),
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("roof_woods", roof_woods, 12)
-        ], jsonfile, cls=MyEncoder)
+            named_section("roof_woods", roof_woods, 12)], jsonfile, cls=MyEncoder)
         #jsonfile.write(pprint.pformat(combined_data))
-    print("wrote:\n\b", os.getcwd()+os.path.sep+"data.json")
+    print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
 
 def named_section(name, part_list, ts_class=None):
     # todo: can add assembly meta, classes etc.
@@ -161,8 +171,8 @@ def get_part_data(profile, rotation, points, material, ts_class=None):
         "klass": ts_class
     }
 
-def generate_lower_reach(polygon, z_offset):
-    return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset+50.0, "Timber_Undefined")
+def generate_lower_reach(polygon, z_offset, mass_center=None):
+    return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset + 50.0, "Timber_Undefined", mass_center)
 
 def create_wood_at(point, point2, profile, rotation=None):
     low_point = point.Clone()
@@ -180,18 +190,18 @@ def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
     mainwall = begin.GetVectorTo(end)
     mainwall_length = begin.distFrom(end)
     holppa = 125.0
-    last = (mainwall_length-2*holppa)%900.0
-    count = int((mainwall_length-2*holppa)/900.0)
+    last = (mainwall_length - 2 * holppa) % 900.0
+    count = int((mainwall_length - 2 * holppa) / 900.0)
     othercorner = roof_polygon[-2].Clone()
     othercorner.Translate(0, 0, z_offset)
     trace("begin: ", begin, " other: ", othercorner)
     sidewall = begin.distFrom(othercorner)
     # ylajuoksun linja shiftataan harjakorkeutaan
-    half_width = sidewall/2
-    roofelevation = half_width*math.cos(math.radians(roof_angle))
+    half_width = sidewall / 2
+    roofelevation = half_width * math.tan(math.radians(roof_angle))
     # ylatukipuun linja siftataan raystaslinjaksi
     halflife2 = 600.0
-    roofdeclination = -halflife2*math.cos(math.radians(roof_angle))
+    roofdeclination = -halflife2 * math.tan(math.radians(roof_angle))
     trace("halflife: ", half_width, " dist: ", mainwall_length, " elev: ", roofelevation)
     # todo: much same as wall panel framing
     lowside = create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation, -halflife2, roofdeclination)
@@ -228,7 +238,7 @@ def generate_wall_studs(polygon, z_offset, height):
         rotation = direction_to_rotation(direction)
         trace("beam rot type: ", type(rotation))
         length = start.distFrom(end)
-        count = int((length-200.0)/600.0)
+        count = int((length - 200.0) / 600.0)
         # stud grid along one edge
         first_offset = -50
         if first_item and not is_closed_loop(polygon):
@@ -289,20 +299,30 @@ def generate_footing(foundationPolygon, footingProfile, sockleProfile):
     # move sockle to footing center, sockle polygon is not centerline but
 	# outer limits to get the polybeam fully casted in closed loop corner.
     sockleWidth = parse_width(sockleProfile)
-    xy_offset = sockleWidth/2
-    footingCenterZ = parse_height(footingProfile)/2
+    xy_offset = sockleWidth / 2
+    footingCenterZ = parse_height(footingProfile) / 2
     return generate_offsetted_beams(foundationPolygon, footingProfile, xy_offset, footingCenterZ, "Concrete_Undefined")
     
-def generate_offsetted_beams(foundationPolygon, profile, xy_offset, z_offset, material):
+def generate_offsetted_beams(polygon, profile, xy_offset, z_offset, material, mass_center = None):
     #xy_offset = parse_width(profile)/2
-    centerlines = generate_offsetted_lines(foundationPolygon, xy_offset, z_offset, profile)
+    centerlines = generate_offsetted_lines(polygon, xy_offset, z_offset, profile, mass_center)
     beams = []
+    first_item = True
     for aa,bb in centerlines:
+        first_offset = -50
+        if is_closed_loop(polygon) or not first_item:
+            first_offset = 0
+        if abs(first_offset) > 0.5:
+            direction = aa.GetVectorTo(bb)
+            towards = Point.Normalize(direction, first_offset)
+            aa.Translate(towards)
         beams.append(get_part_data(profile, None, [aa, bb], material))
+        first_item = False
     return beams
     
-def extend_or_subtract(polygon, xy_offset, z_offset):
-    mass_center = centroid(polygon)
+def extend_or_subtract(polygon, xy_offset, z_offset, mass_center):
+    if not mass_center:
+        mass_center = centroid(polygon)
     footingCenter = []
 	#if instanceof(profile, float):
 	#	h_offset = profile
@@ -310,27 +330,30 @@ def extend_or_subtract(polygon, xy_offset, z_offset):
 	#	h_offset = parse_width(profile)/2
     for node in polygon:
         # todo: parse from profile
+        #endpoint = node
+        #if len(polygon) > 2:
         endpoint = node.moveCloserTo(mass_center, xy_offset)
         endpoint.Translate(0, 0, z_offset)
         footingCenter.append(endpoint)
     return footingCenter
 
-def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfile=None):
+def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfile=None, mass_center=None):
     # move points i.e. 50mm closer to structure center (to 100*100 beam centerline)
-    footingCenter = extend_or_subtract(master_polygon, xy_offset, z_offset)
+    footingCenter = extend_or_subtract(master_polygon, xy_offset, z_offset, mass_center)
     footingLines = pairwise(footingCenter)
     polygonMidpoints = []
     adjustEndPoints = xy_offset
     if adjustByProfile is not None:
         # footing pads have different widht than xy_offset
-        adjustEndPoints = parse_width(adjustByProfile)/2
-    #undisclosed_ending = 
+        adjustEndPoints = parse_width(adjustByProfile) / 2
+    #undisclosed_ending =
     first_item = True
     for start,end in footingLines:
         vector = start.GetVectorTo(end)
         #trace(start, )
         corners = Point.Normalize(vector, adjustEndPoints)
-        #trace("start: {0}, end:{1}, direction: {2} translate vector: {3}".format(start, end, vector, corners,))
+        #trace("start: {0}, end:{1}, direction: {2} translate vector:
+        #{3}".format(start, end, vector, corners,))
         #start.Translate(corners)
         #end.Translate(corners)
         aa = start.Clone()
@@ -339,7 +362,8 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
             aa.Translate(corners)
         else:
             trace("------------ skip 1")
-        #if not is_last_item(master_polygon, bb) and is_closed_loop(master_polygon):
+        #if not is_last_item(master_polygon, bb) and
+        #is_closed_loop(master_polygon):
         bb.Translate(corners)
         #else:
         #    trace("------------ skip -1")
@@ -353,7 +377,7 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
     return polygonMidpoints
 
 def trace(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
+    print(*args, file = sys.stderr, **kwargs)
     
 from json import JSONEncoder
 class MyEncoder(JSONEncoder):
@@ -380,7 +404,7 @@ if __name__ == "__main__":
     
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 7600.00]
-    centerline = [Point(0, 1660.0+7600.0/2, 0), Point(sum(grid_x), 1660.0+7600.0/2, 0)]
+    centerline = [Point(0, 1660.0 + 7600.0 / 2, 0), Point(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
     sockle = "800*200"
     footing = "200*500"
 
