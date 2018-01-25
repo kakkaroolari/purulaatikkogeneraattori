@@ -16,6 +16,11 @@ class Point( object ):
                 abs(self.y - other.y) < 0.5 and
                 abs(self.z - other.z) < 0.5 )
 
+    def Add(self, x, y=None, z=None):
+        if isinstance(x, Point):
+            (x,y,z) = (x.x, x.y, x.z)
+        return Point(self.x + x, self.y + y, self.z + z)
+
     def moveCloserTo(self, point, amount):
         new_x = self.x
         new_y = self.y
@@ -63,6 +68,32 @@ class Point( object ):
         normalized.y *= lenght
         normalized.z *= lenght
         return normalized
+
+    def Reversed(vector):
+        return Point(-vector.x, -vector.y, -vector.z)
+
+    def Midpoint(p1, p2):
+        return Point((p1.x+p2.x)/2, (p1.y+p2.y)/2, (p1.z+p2.z)/2)
+
+    # https://stackoverflow.com/questions/4543506/algorithm-for-intersection-of-2-lines
+    def LineSegmentIntersect(line1V1, line1V2, line2V1, line2V2):
+        # Line1
+        A1 = line1V2.Y - line1V1.Y
+        B1 = line1V2.X - line1V1.X
+        C1 = A1*line1V1.X + B1*line1V1.Y
+
+        # Line2
+        A2 = line2V2.Y - line2V1.Y
+        B2 = line2V2.X - line2V1.X
+        C2 = A2 * line2V1.X + B2 * line2V1.Y
+
+        det = A1*B2 - A2*B1
+        if abs(det) < sys.float_info.epsilon:
+            return None # parallel lines
+        else:
+            x = (B2*C1 - B1*C2)/det;
+            y = (A1 * C2 - A2 * C1) / det;
+            return Point(x,y,0)
 
     #def default(self, obj):
     #    return {"point" : {"x":obj.x,"y":obj.y,"z":obj.z}}

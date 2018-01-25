@@ -70,7 +70,7 @@ def is_closed_loop(grid):
     #trace("closed: ", closed)
     return closed
 
-def get_ceiling(current, start, fullwidth, roofangle):
+def get_ceiling(current, start, height, fullwidth, roofangle):
     dist_to_start = current.distFrom(start)
     coeff = math.tan(math.radians(roofangle))
     inner_width = fullwidth - 100 # todo profile
@@ -78,7 +78,43 @@ def get_ceiling(current, start, fullwidth, roofangle):
         elevation = dist_to_start * coeff
     else:
         elevation = (inner_width - dist_to_start) * coeff
-    return elevation
+    return height + elevation
+
+def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
+    wall_line = startpoint.GetVectorTo(endpoint)
+    length = startpoint.distFrom(endpoint)
+    boxmax = max(height*2, length)
+    A = startpoint.Clone()
+    B = Point.Midpoint(startpoint, endpoint)
+    C = B.CopyLinear(0,0,get_ceiling(startpoint, B, height, length, roofangle))
+    D = A.CopyLinear(0,0,height)
+    # helper vinolaudat
+    gridfull = math.sqrt(2)*100.0
+    gridhalf = gridfull/2
+    # directions 
+    increment_h = wall_line
+    stiffener_lines = []
+    towards_xy = Point.Normalize(wall_line, gridfull) # todo begin at full
+    towards_up = Point(0,0,gridfull) # z-vector
+    aa = startpoint.Clone()
+    bb = startpoint.Clone()
+    toN = Point.Normalize(towards_up.Add(towards_xy.Reversed()), boxmax)
+    toM = Point.Normalize(towards_xy.Add(towards_up.Reversed()), boxmax)
+    aa.Translate(toN)
+    bb.Translate(toM)
+    grid_direction = Point.Normalize(towards_up.Add(towards_xy), 100)
+    counter = int(boxmax/gridfull)
+    trace("stiff count: ", counter)
+    for rep in range(int(boxmax/gridfull)):
+        aa.Translate(grid_direction)
+        bb.Translate(grid_direction)
+        stiffener_lines.append((aa.Clone(),bb.Clone(),))
+    # now we should intersect the shit
+    precut_stiffeners = []
+    #for begin,end in stiffener_lines:
+        # 1. cut AD -> nn
+    #def get_height(startpoint, B, height, ceiling_func):
+    return stiffener_lines # todo precut'em
 
 def is_short_side(p1, p2):
     # TODO: assumes purulaatikko always oriented same
@@ -118,6 +154,9 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     high_polygon1 = generate_loop(grid_x, grid_y, high_pairs1)
     high_polygon2 = generate_loop(grid_x, grid_y, high_pairs2)
 
+    stiff_pairs = [(0,2),(0,1)]
+    stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
+
     mass_center = centroid(master_polygon)
     trace("centroid is: ", mass_center)
     #trace("sockle is: ", ', '.join([str(x) for x in polygon]))
@@ -139,14 +178,17 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     higher_reach += generate_lower_reach(porch_polygon, 3750.0)
     wall_studs += generate_wall_studs(porch_polygon, 1000.0, 2650)
 
+    # stiffener experiment
+    stiffeners = stiffen_wall(stiff_poly, 1000.0, 3650, roof_angle, mass_center)
+
     # bit different
     roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
 
     #trace("high: " + pprint.pformat(higher_reach))
     #trace("studs: " + pprint.pformat(wall_studs))
     #trace("low: " + pprint.pformat(lower_reach))
-    trace("sockle is: " + pprint.pformat(sockle))
-    trace("footing is: " + pprint.pformat(footing))
+    #trace("sockle is: " + pprint.pformat(sockle))
+    #trace("footing is: " + pprint.pformat(footing))
 
     combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
     
@@ -156,7 +198,8 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("roof_woods", roof_woods, 12)], jsonfile, cls=MyEncoder)
+            named_section("stiffeners", stiffeners),
+            named_section("roof_woods", roof_woods, 12)], jsonfile, cls=MyEncoder, indent=2)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
 
@@ -178,6 +221,7 @@ def get_part_data(profile, rotation, points, material, ts_class=None):
 
 def generate_lower_reach(polygon, z_offset, mass_center=None):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset + 50.0, "Timber_Undefined", mass_center)
+
 
 def create_wood_at(point, point2, profile, rotation=None):
     low_point = point.Clone()
@@ -230,6 +274,18 @@ def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holpp
         roofparts.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
     return roofparts
 
+def stiffen_wall(stiff_poly, z_offset, height, roof_angle, mass_center):
+    centerlines = generate_offsetted_lines(stiff_poly, -11.0, z_offset, None, mass_center)
+    # todo stiff it up
+    stiffs = []
+    for aa,bb in centerlines:
+        wallline = aa.GetVectorTo(bb)
+        rotation = direction_to_rotation(wallline)
+        eps = stiffener_one_plane(aa, bb, None, height, roof_angle)
+        for ss,tt in eps:
+           stiffs.append(create_wood_at(ss,tt, "22*100", rotation))
+    return stiffs
+
 def generate_wall_studs(polygon, z_offset, height, roofangle=None):
     # todo: purulaatikko constant
     xy_offset = 50.0
@@ -260,7 +316,7 @@ def generate_wall_studs(polygon, z_offset, height, roofangle=None):
                 # corners have 4x4
                 profile = "100*100"
             elif use_ceiling:
-                current_height = height + get_ceiling(lowpoint, wall_begin, length, roofangle) + 250
+                current_height = get_ceiling(lowpoint, wall_begin, height, length, roofangle) + 250
             highpoint = lowpoint.CopyLinear(0,0,current_height)
             studpoints.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         first_item = False
@@ -284,12 +340,17 @@ def point_grid(startpoint, dir_vector, count, first_offset, kdist):
     return grid
 
     
-def direction_to_rotation(direction):
-    if abs(direction.y) > abs(direction.x):
-        if direction.y > 0:
+def direction_to_rotation(direction, invert=False):
+    (x, y) = (direction.x, direction.y)
+    if invert:
+        temp = x
+        x = y
+        y = temp
+    if abs(y) > abs(x):
+        if y > 0:
             return Rotation.FRONT
         return Rotation.BACK
-    if direction.x > 0:
+    if x > 0:
         return Rotation.TOP
     return Rotation.BELOW
 
