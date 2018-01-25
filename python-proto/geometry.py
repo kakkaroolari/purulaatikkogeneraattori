@@ -78,12 +78,12 @@ def get_ceiling(current, start, height, fullwidth, roofangle):
         elevation = dist_to_start * coeff
     else:
         elevation = (inner_width - dist_to_start) * coeff
-    return height + elevation
+    return height + elevation + 200 # yla/alajuoksut
 
 def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
     wall_line = startpoint.GetVectorTo(endpoint)
     length = startpoint.distFrom(endpoint)
-    boxmax = max(height*2, length)
+    boxmax = max(height*2, length) * math.sqrt(2)
     A = startpoint.Clone()
     B = Point.Midpoint(startpoint, endpoint)
     C = B.CopyLinear(0,0,get_ceiling(startpoint, B, height, length, roofangle))
@@ -112,7 +112,7 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
         stiffener_lines.append((aa.Clone(),bb.Clone(),)) # todo remove and precut
     # now we should intersect the shit
     precut_stiffeners = []
-    
+    ceiling = get_ceiling(B, A, height, length, roofangle)
     for N,M in stiffener_lines:
         # 1. cut AD -> nm
         beg = Point.isect_line_plane_v3_wrap(N,M,A,wall_line)
@@ -126,6 +126,8 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
         #if not end.IsValid():
         if end.distFrom(A) > length/2:
             end = Point.isect_line_plane_v3_wrap(N,M,B,towards_xy)
+        if beg.z - B.z > ceiling or end.z - B.z > ceiling:
+            continue
         precut_stiffeners.append((beg, end),)
     #def get_height(startpoint, B, height, ceiling_func):
     #return stiffener_lines # todo precut'em
@@ -338,7 +340,7 @@ def generate_wall_studs(polygon, z_offset, height, roofangle=None):
                 # corners have 4x4
                 profile = "100*100"
             elif use_ceiling:
-                current_height = get_ceiling(lowpoint, wall_begin, height, length, roofangle) + 250
+                current_height = get_ceiling(lowpoint, wall_begin, height, length, roofangle) + 50
             highpoint = lowpoint.CopyLinear(0,0,current_height)
             studpoints.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         first_item = False
