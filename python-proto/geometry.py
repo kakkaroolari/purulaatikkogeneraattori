@@ -88,6 +88,7 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
     B = Point.Midpoint(startpoint, endpoint)
     C = B.CopyLinear(0,0,get_ceiling(startpoint, B, height, length, roofangle))
     D = A.CopyLinear(0,0,height)
+    trace("ABCD: ", A, B, C, D)
     # helper vinolaudat
     gridfull = math.sqrt(2)*100.0
     gridhalf = gridfull/2
@@ -105,16 +106,37 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
     grid_direction = Point.Normalize(towards_up.Add(towards_xy), 100)
     counter = int(boxmax/gridfull)
     trace("stiff count: ", counter)
-    for rep in range(int(boxmax/gridfull)):
+    for rep in range(counter):
         aa.Translate(grid_direction)
         bb.Translate(grid_direction)
-        stiffener_lines.append((aa.Clone(),bb.Clone(),))
+        stiffener_lines.append((aa.Clone(),bb.Clone(),)) # todo remove and precut
     # now we should intersect the shit
     precut_stiffeners = []
-    #for begin,end in stiffener_lines:
-        # 1. cut AD -> nn
+    
+    for N,M in stiffener_lines:
+        # 1. cut AD -> nm
+        beg = Point.isect_line_plane_v3_wrap(N,M,A,wall_line)
+        # 2. if no, DC -> nm
+        #if not beg.IsValid():
+        if beg.distFrom(A) > height:
+            beg = Point.isect_line_plane_v3_wrap(N,M,D,get_roov_vector(A,B,C,D))
+        # 3. cut AB -> nm
+        end = Point.isect_line_plane_v3_wrap(N,M,A,towards_up)
+        # if no, BC -> nm
+        #if not end.IsValid():
+        if end.distFrom(A) > length/2:
+            end = Point.isect_line_plane_v3_wrap(N,M,B,towards_xy)
+        precut_stiffeners.append((beg, end),)
     #def get_height(startpoint, B, height, ceiling_func):
-    return stiffener_lines # todo precut'em
+    #return stiffener_lines # todo precut'em
+    return precut_stiffeners
+
+def get_roov_vector(A,B,C,D):
+    ad = A.GetVectorTo(D)
+    ab = A.GetVectorTo(B)
+    dc = D.GetVectorTo(C)
+    helper = Point.Cross(ad, ab)
+    return Point.Cross(helper, dc)
 
 def is_short_side(p1, p2):
     # TODO: assumes purulaatikko always oriented same
