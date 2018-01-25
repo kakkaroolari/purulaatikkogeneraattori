@@ -113,27 +113,48 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
     # now we should intersect the shit
     precut_stiffeners = []
     ceiling = get_ceiling(B, A, height, length, roofangle)
+    roof_normal_vector = get_roof_vector(A,B,C,D)
+    last_ninja = None
+    # precut'em
     for N,M in stiffener_lines:
         # 1. cut AD -> nm
         beg = Point.isect_line_plane_v3_wrap(N,M,A,wall_line)
         # 2. if no, DC -> nm
-        #if not beg.IsValid():
         if beg.distFrom(A) > height:
-            beg = Point.isect_line_plane_v3_wrap(N,M,D,get_roov_vector(A,B,C,D))
+            beg = Point.isect_line_plane_v3_wrap(N,M,D,roof_normal_vector)
         # 3. cut AB -> nm
         end = Point.isect_line_plane_v3_wrap(N,M,A,towards_up)
         # if no, BC -> nm
-        #if not end.IsValid():
         if end.distFrom(A) > length/2:
             end = Point.isect_line_plane_v3_wrap(N,M,B,towards_xy)
+        # skip all going over
         if beg.z - B.z > ceiling or end.z - B.z > ceiling:
             continue
+        last_ninja = end.Clone()
         precut_stiffeners.append((beg, end),)
-    #def get_height(startpoint, B, height, ceiling_func):
-    #return stiffener_lines # todo precut'em
+    #return precut_stiffeners
+    if last_ninja is None:
+        return None
+    #return precut_stiffeners
+    # continue to other side, transpose 90 deg
+    stiffener_dir = Point.Normalize(grid_direction, boxmax)
+    trace("boxmax: ", boxmax, stiffener_dir)
+    #grid_direction = get_roof_vector(A,B,C,D).Normalize(-50)
+    last_ninja.Translate(0,0,-math.sqrt(50*50+50*50)) # ca 70 mm down
+    #last_ninja.Traslate(grid_direction) # ca 70 mm down
+    stiffener_lines = []
+    aa = last_ninja.Clone()
+    for i in range(counter):
+        beg = aa.Clone()
+        end = aa.CopyLinear(stiffener_dir)
+        stiffener_lines.append((beg.Clone(), end.Clone()),)
+        aa.Translate(0,0, -gridfull)
+    # todo precut othor said
+    for N,M in stiffener_lines:
+        precut_stiffeners.append((N,M),)
     return precut_stiffeners
 
-def get_roov_vector(A,B,C,D):
+def get_roof_vector(A,B,C,D):
     ad = A.GetVectorTo(D)
     ab = A.GetVectorTo(B)
     dc = D.GetVectorTo(C)
