@@ -150,8 +150,17 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
         stiffener_lines.append((beg.Clone(), end.Clone()),)
         aa.Translate(0,0, -gridfull)
     # todo precut othor said
+    E = endpoint.Clone()
+    F = endpoint.CopyLinear(0,0,height)
+    #towards_down = Point(0,0,-100)
     for N,M in stiffener_lines:
-        precut_stiffeners.append((N,M),)
+        # 1. cut BE -> nm
+        beg = N.Clone()
+        if beg.z < B.z:
+            beg = Point.isect_line_plane_v3_wrap(N,M,B,towards_up)
+            #if beg is None:
+            #    beg = N
+        precut_stiffeners.append((beg.Clone(),M.Clone()),)
     return precut_stiffeners
 
 def get_roof_vector(A,B,C,D):
