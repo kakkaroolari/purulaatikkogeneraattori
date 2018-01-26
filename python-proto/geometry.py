@@ -80,7 +80,13 @@ def get_ceiling(current, start, height, fullwidth, roofangle):
         elevation = (inner_width - dist_to_start) * coeff
     return height + elevation + 200 # yla/alajuoksut
 
+
 def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
+    """
+    Create 45 degree stiffeners for two sections of a wall line.
+    TODO: refactor to draw boards symmetrically for beautify reasons.
+    TODO: 22 mm offset to porch (woods only!)
+    """
     wall_line = startpoint.GetVectorTo(endpoint)
     length = startpoint.distFrom(endpoint)
     boxmax = max(height*2, length) * math.sqrt(2)
@@ -163,9 +169,6 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
         end = Point.isect_line_plane_v3_wrap(N,M,E,towards_xy)
         if end.distFrom(E) > height:
             end = Point.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
-        #else:
-        #    end = Point.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
-        # last boundary check, skip all going under (1 mm tolerance)
         if beg.z < B.z - 1.0 or end.z < B.z - 1.0:
             continue
         precut_stiffeners.append((beg.Clone(),end),)
@@ -236,6 +239,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     # porch
     footing += generate_footing(porch_polygon, footingProfile, sockleProfile)
     sockle += generate_sockle(porch_polygon, sockleProfile, z_offset)
+    offset_porch_woods_outwards(porch_polygon, mass_center)
     lower_reach += generate_lower_reach(porch_polygon, 1000.0)
     higher_reach += generate_lower_reach(porch_polygon, 3750.0)
     wall_studs += generate_wall_studs(porch_polygon, 1000.0, 2650)
@@ -284,6 +288,16 @@ def get_part_data(profile, rotation, points, material, ts_class=None):
 def generate_lower_reach(polygon, z_offset, mass_center=None):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset + 50.0, "Timber_Undefined", mass_center)
 
+def offset_porch_woods_outwards(porch_polygon, mass_center):
+    porch_mass = centroid(porch_polygon)
+    between = porch_mass.GetVectorTo(mass_center)
+    if abs(between.x) > abs(between.y):
+        # extrude x-axis
+        outwards_for_stiffeners = Point(-22, 0, 0)
+    else:
+        outwards_for_stiffeners = Point(0, -22, 0)
+    porch_polygon[0].Translate(outwards_for_stiffeners)
+    porch_polygon[-1].Translate(outwards_for_stiffeners)
 
 def create_wood_at(point, point2, profile, rotation=None):
     low_point = point.Clone()
@@ -533,7 +547,7 @@ if __name__ == "__main__":
          - lattiajuoksut
          - valipohjavasat
          - ullakko ristikko
-         - 
+         - kattolappeet per puoli -> porch business
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
