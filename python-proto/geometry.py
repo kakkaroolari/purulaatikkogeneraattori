@@ -97,6 +97,10 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roof_angle=None):
     boxmax = max(height*2, length) * math.sqrt(2)
     A = startpoint.Clone()
     B = Point.Midpoint(startpoint, endpoint)
+    extremely_short_wall = length < 3000
+    if extremely_short_wall:
+        B = endpoint.Clone() # TODO: fix this, won't work with upper roof polygon stuff
+        roofangle = None
     C = B.CopyLinear(0,0,get_ceiling(startpoint, B, height, length, roofangle))
     D = A.CopyLinear(0,0,height)
     trace("ABCD: ", A, B, C, D)
@@ -136,14 +140,16 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roof_angle=None):
         # 3. cut AB -> nm
         end = Point.isect_line_plane_v3_wrap(N,M,A,towards_up)
         # if no, BC -> nm
-        if end.distFrom(A) > length/2:
+        cutlength = length if extremely_short_wall else length/2
+        if end.distFrom(A) > cutlength:
             end = Point.isect_line_plane_v3_wrap(N,M,B,towards_xy)
         # skip all going over
         if beg.z - B.z > ceiling + 10.0 or end.z - B.z > ceiling + 10.0:
             continue
         last_ninja = end.Clone()
         precut_stiffeners.append((beg, end),)
-    #return precut_stiffeners
+    if extremely_short_wall:
+        return precut_stiffeners
     if last_ninja is None:
         return None
     #return precut_stiffeners
@@ -228,8 +234,9 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     high_polygon1 = generate_loop(grid_x, grid_y, high_pairs1)
     high_polygon2 = generate_loop(grid_x, grid_y, high_pairs2)
 
-    stiff_pairs = [(0,1),(3,1)]
-    stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
+    # Used for testing stiffeners
+    #stiff_pairs = [(0,1),(3,1)]
+    #stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
 
     mass_center = centroid(master_polygon)
     trace("centroid is: ", mass_center)
@@ -255,7 +262,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
 
     # stiffener experiment
     stiffeners = stiffen_wall(master_polygon, 1000.0, 3850, roof_angle, mass_center)
-    #stiffeners = stiffen_wall(stiff_poly, 1000.0, 3850, roof_angle, mass_center)
+    porch_stiffeners = stiffen_wall(porch_polygon, 1000.0, 2850, roof_angle, mass_center)
 
     # bit different
     roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
@@ -275,6 +282,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
             named_section("stiffeners", stiffeners),
+            named_section("porch_stiffeners", porch_stiffeners),
             named_section("roof_woods", roof_woods, 12)], jsonfile, cls=MyEncoder, indent=2)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
