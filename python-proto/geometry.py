@@ -71,6 +71,8 @@ def is_closed_loop(grid):
     return closed
 
 def get_ceiling(current, start, height, fullwidth, roofangle):
+    if not roofangle:
+        return height
     dist_to_start = current.distFrom(start)
     coeff = math.tan(math.radians(roofangle))
     inner_width = fullwidth - 100 # todo profile
@@ -78,15 +80,18 @@ def get_ceiling(current, start, height, fullwidth, roofangle):
         elevation = dist_to_start * coeff
     else:
         elevation = (inner_width - dist_to_start) * coeff
-    return height + elevation + 200 # yla/alajuoksut
+    return height + elevation
 
 
-def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
+def stiffener_one_plane(startpoint, endpoint, expance, height, roof_angle=None):
     """
     Create 45 degree stiffeners for two sections of a wall line.
     TODO: refactor to draw boards symmetrically for beautify reasons.
     TODO: 22 mm offset to porch (woods only!)
     """
+    roofangle = roof_angle
+    if is_short_side(startpoint, endpoint, roof_angle):
+        roofangle = None
     wall_line = startpoint.GetVectorTo(endpoint)
     length = startpoint.distFrom(endpoint)
     boxmax = max(height*2, length) * math.sqrt(2)
@@ -134,7 +139,7 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
         if end.distFrom(A) > length/2:
             end = Point.isect_line_plane_v3_wrap(N,M,B,towards_xy)
         # skip all going over
-        if beg.z - B.z > ceiling or end.z - B.z > ceiling:
+        if beg.z - B.z > ceiling + 10.0 or end.z - B.z > ceiling + 10.0:
             continue
         last_ninja = end.Clone()
         precut_stiffeners.append((beg, end),)
@@ -167,9 +172,13 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
         # 2. cut EF -> nm
         end = M.Clone()
         end = Point.isect_line_plane_v3_wrap(N,M,E,towards_xy)
-        if end.distFrom(E) > height:
+        # 3. cut FC -> nm (if there's a roof angle)
+        if end.distFrom(E) > height: #and roofangle:
             end = Point.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
-        if beg.z < B.z - 1.0 or end.z < B.z - 1.0:
+            # skip all going under (10 mm tolerance)
+        if beg.z < B.z - 10.0 or end.z < B.z - 10.0:
+            continue
+        if beg.distFrom(A) > length + 10.0 and end.distFrom(A) > length + 10.0:
             continue
         precut_stiffeners.append((beg.Clone(),end),)
     return precut_stiffeners
@@ -181,9 +190,9 @@ def get_roof_vector(A,B,C,D):
     helper = Point.Cross(ad, ab)
     return Point.Cross(helper, dc)
 
-def is_short_side(p1, p2):
+def is_short_side(p1, p2, roofangle):
     # TODO: assumes purulaatikko always oriented same
-    return abs(p2.y-p1.y) > 5000
+    return abs(p2.y-p1.y) > 5000 and roofangle
 
 def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
@@ -219,7 +228,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     high_polygon1 = generate_loop(grid_x, grid_y, high_pairs1)
     high_polygon2 = generate_loop(grid_x, grid_y, high_pairs2)
 
-    stiff_pairs = [(0,2),(0,1)]
+    stiff_pairs = [(0,1),(3,1)]
     stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
 
     mass_center = centroid(master_polygon)
@@ -245,7 +254,8 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     wall_studs += generate_wall_studs(porch_polygon, 1000.0, 2650)
 
     # stiffener experiment
-    stiffeners = stiffen_wall(stiff_poly, 1000.0, 3650, roof_angle, mass_center)
+    #stiffeners = stiffen_wall(master_polygon, 1000.0, 3650, roof_angle, mass_center)
+    stiffeners = stiffen_wall(stiff_poly, 1000.0, 3850, roof_angle, mass_center)
 
     # bit different
     roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
@@ -355,11 +365,14 @@ def stiffen_wall(stiff_poly, z_offset, height, roof_angle, mass_center):
     # todo stiff it up
     stiffs = []
     for aa,bb in centerlines:
+        use_angle = None
+        if is_short_side(aa,bb, roof_angle):
+            use_angle = roof_angle
         wallline = aa.GetVectorTo(bb)
         rotation = direction_to_rotation(wallline)
-        eps = stiffener_one_plane(aa, bb, None, height, roof_angle)
+        eps = stiffener_one_plane(aa, bb, None, height, use_angle)
         for ss,tt in eps:
-           stiffs.append(create_wood_at(ss,tt, "22*100", rotation))
+           stiffs.append(create_wood_at(ss,tt, "22*100", Rotation.FRONT))
     return stiffs
 
 def generate_wall_studs(polygon, z_offset, height, roofangle=None):
@@ -382,7 +395,7 @@ def generate_wall_studs(polygon, z_offset, height, roofangle=None):
         if first_item and not is_closed_loop(polygon):
             first_offset = 0
         wood_grid = point_grid(start, direction, count, first_offset, 600)
-        use_ceiling = is_short_side(start,end) and roofangle # todo something smarter
+        use_ceiling = is_short_side(start,end, roofangle) # todo something smarter
         for ii in range(len(wood_grid)):
             lowpoint = wood_grid[ii].Clone()
             current_height = height
@@ -543,11 +556,13 @@ if __name__ == "__main__":
          ..to view what has changed.
 
          TODO list
-         - paatypuut pitkiksi
          - lattiajuoksut
          - valipohjavasat
          - ullakko ristikko
          - kattolappeet per puoli -> porch business
+         - elevation grid, and roof centerline definitions
+         - get_ceiling unnecessary call
+         - vinolautoja hukassa
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
