@@ -161,8 +161,8 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roofangle=None):
         # 2. cut EF -> nm
         end = M.Clone()
         end = Point.isect_line_plane_v3_wrap(N,M,E,towards_xy)
-        #if end.distFrom(E) < height:
-        #    end = Point.isect_line_plane_v3_wrap(N,M,E,towards_xy)
+        if end.distFrom(E) > height:
+            end = Point.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
         #else:
         #    end = Point.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
         # last boundary check, skip all going under (1 mm tolerance)
