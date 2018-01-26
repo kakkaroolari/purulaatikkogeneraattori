@@ -90,7 +90,7 @@ def stiffener_one_plane(startpoint, endpoint, expance, height, roof_angle=None):
     TODO: 22 mm offset to porch (woods only!)
     """
     roofangle = roof_angle
-    if is_short_side(startpoint, endpoint, roof_angle):
+    if not is_short_side(startpoint, endpoint):
         roofangle = None
     wall_line = startpoint.GetVectorTo(endpoint)
     length = startpoint.distFrom(endpoint)
@@ -190,9 +190,9 @@ def get_roof_vector(A,B,C,D):
     helper = Point.Cross(ad, ab)
     return Point.Cross(helper, dc)
 
-def is_short_side(p1, p2, roofangle):
+def is_short_side(p1, p2):
     # TODO: assumes purulaatikko always oriented same
-    return abs(p2.y-p1.y) > 5000 and roofangle
+    return abs(p2.y-p1.y) > 5000 
 
 def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
@@ -254,8 +254,8 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     wall_studs += generate_wall_studs(porch_polygon, 1000.0, 2650)
 
     # stiffener experiment
-    #stiffeners = stiffen_wall(master_polygon, 1000.0, 3650, roof_angle, mass_center)
-    stiffeners = stiffen_wall(stiff_poly, 1000.0, 3850, roof_angle, mass_center)
+    stiffeners = stiffen_wall(master_polygon, 1000.0, 3850, roof_angle, mass_center)
+    #stiffeners = stiffen_wall(stiff_poly, 1000.0, 3850, roof_angle, mass_center)
 
     # bit different
     roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
@@ -366,7 +366,7 @@ def stiffen_wall(stiff_poly, z_offset, height, roof_angle, mass_center):
     stiffs = []
     for aa,bb in centerlines:
         use_angle = None
-        if is_short_side(aa,bb, roof_angle):
+        if is_short_side(aa,bb):
             use_angle = roof_angle
         wallline = aa.GetVectorTo(bb)
         rotation = direction_to_rotation(wallline)
@@ -395,7 +395,7 @@ def generate_wall_studs(polygon, z_offset, height, roofangle=None):
         if first_item and not is_closed_loop(polygon):
             first_offset = 0
         wood_grid = point_grid(start, direction, count, first_offset, 600)
-        use_ceiling = is_short_side(start,end, roofangle) # todo something smarter
+        use_ceiling = is_short_side(start,end) and roofangle # todo something smarter
         for ii in range(len(wood_grid)):
             lowpoint = wood_grid[ii].Clone()
             current_height = height
