@@ -4,18 +4,12 @@ import sys
 import os
 import pprint
 from point import Point
+from stiffeners import Stiffener
 import itertools #import izip
 import re
 import json
-from constantdict import ConstantDict
 import math
-
-class Rotation(ConstantDict):
-    """Tekla Position.Rotation"""
-    FRONT = 0
-    TOP = 1
-    BACK = 2
-    BELOW = 3
+from helpers import *
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -69,132 +63,6 @@ def is_closed_loop(grid):
     closed = grid[0].Compare(grid[-1])
     #trace("closed: ", closed)
     return closed
-
-def get_ceiling(current, start, height, fullwidth, roofangle):
-    if not roofangle:
-        return height
-    dist_to_start = current.distFrom(start)
-    coeff = math.tan(math.radians(roofangle))
-    inner_width = fullwidth - 100 # todo profile
-    if dist_to_start < inner_width/2:
-        elevation = dist_to_start * coeff
-    else:
-        elevation = (inner_width - dist_to_start) * coeff
-    return height + elevation
-
-
-def stiffener_one_plane(startpoint, endpoint, expance, height, roof_angle=None):
-    """
-    Create 45 degree stiffeners for two sections of a wall line.
-    TODO: refactor to draw boards symmetrically for beautify reasons.
-    TODO: 22 mm offset to porch (woods only!)
-    """
-    roofangle = roof_angle
-    if not is_short_side(startpoint, endpoint):
-        roofangle = None
-    wall_line = startpoint.GetVectorTo(endpoint)
-    length = startpoint.distFrom(endpoint)
-    boxmax = max(height*2, length) * math.sqrt(2)
-    A = startpoint.Clone()
-    B = Point.Midpoint(startpoint, endpoint)
-    extremely_short_wall = length < 3000
-    if extremely_short_wall:
-        B = endpoint.Clone() # TODO: fix this, won't work with upper roof polygon stuff
-        roofangle = None
-    C = B.CopyLinear(0,0,get_ceiling(startpoint, B, height, length, roofangle))
-    D = A.CopyLinear(0,0,height)
-    trace("ABCD: ", A, B, C, D)
-    # helper vinolaudat
-    gridfull = math.sqrt(2)*100.0
-    gridhalf = gridfull/2
-    # directions 
-    increment_h = wall_line
-    stiffener_lines = []
-    towards_xy = Point.Normalize(wall_line, gridfull) # todo begin at full
-    towards_up = Point(0,0,gridfull) # z-vector
-    aa = startpoint.Clone()
-    bb = startpoint.Clone()
-    toN = Point.Normalize(towards_up.Add(towards_xy.Reversed()), boxmax)
-    toM = Point.Normalize(towards_xy.Add(towards_up.Reversed()), boxmax)
-    aa.Translate(toN)
-    bb.Translate(toM)
-    grid_direction = Point.Normalize(towards_up.Add(towards_xy), 100)
-    counter = int(boxmax/gridfull)
-    trace("stiff count: ", counter)
-    for rep in range(counter):
-        aa.Translate(grid_direction)
-        bb.Translate(grid_direction)
-        stiffener_lines.append((aa.Clone(),bb.Clone(),)) # todo remove and precut
-    # now we should intersect the shit
-    precut_stiffeners = []
-    ceiling = get_ceiling(B, A, height, length, roofangle)
-    roof_normal_vector = get_roof_vector(A,B,C,D)
-    last_ninja = None
-    # precut'em
-    for N,M in stiffener_lines:
-        # 1. cut AD -> nm
-        beg = Point.isect_line_plane_v3_wrap(N,M,A,wall_line)
-        # 2. if no, DC -> nm
-        if beg.distFrom(A) > height:
-            beg = Point.isect_line_plane_v3_wrap(N,M,D,roof_normal_vector)
-        # 3. cut AB -> nm
-        end = Point.isect_line_plane_v3_wrap(N,M,A,towards_up)
-        # if no, BC -> nm
-        cutlength = length if extremely_short_wall else length/2
-        if end.distFrom(A) > cutlength:
-            end = Point.isect_line_plane_v3_wrap(N,M,B,towards_xy)
-        # skip all going over
-        if beg.z - B.z > ceiling + 10.0 or end.z - B.z > ceiling + 10.0:
-            continue
-        last_ninja = end.Clone()
-        precut_stiffeners.append((beg, end),)
-    if extremely_short_wall:
-        return precut_stiffeners
-    if last_ninja is None:
-        return None
-    #return precut_stiffeners
-    # continue to other side, transpose 90 deg
-    stiffener_dir = Point.Normalize(grid_direction, boxmax)
-    trace("boxmax: ", boxmax, stiffener_dir)
-    #grid_direction = get_roof_vector(A,B,C,D).Normalize(-50)
-    last_ninja.Translate(0,0,-math.sqrt(50*50+50*50)) # ca 70 mm down
-    #last_ninja.Traslate(grid_direction) # ca 70 mm down
-    stiffener_lines = []
-    aa = last_ninja.Clone()
-    for i in range(counter):
-        beg = aa.Clone()
-        end = aa.CopyLinear(stiffener_dir)
-        stiffener_lines.append((beg.Clone(), end.Clone()),)
-        aa.Translate(0,0, -gridfull)
-    # todo precut othor said
-    E = endpoint.Clone()
-    F = endpoint.CopyLinear(0,0,height)
-    #towards_down = Point(0,0,-100)
-    for N,M in stiffener_lines:
-        # 1. cut BE -> nm
-        beg = N.Clone()
-        if beg.z < B.z:
-            beg = Point.isect_line_plane_v3_wrap(N,M,B,towards_up)
-        # 2. cut EF -> nm
-        end = M.Clone()
-        end = Point.isect_line_plane_v3_wrap(N,M,E,towards_xy)
-        # 3. cut FC -> nm (if there's a roof angle)
-        if end.distFrom(E) > height: #and roofangle:
-            end = Point.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
-            # skip all going under (10 mm tolerance)
-        if beg.z < B.z - 10.0 or end.z < B.z - 10.0:
-            continue
-        if beg.distFrom(A) > length + 10.0 and end.distFrom(A) > length + 10.0:
-            continue
-        precut_stiffeners.append((beg.Clone(),end),)
-    return precut_stiffeners
-
-def get_roof_vector(A,B,C,D):
-    ad = A.GetVectorTo(D)
-    ab = A.GetVectorTo(B)
-    dc = D.GetVectorTo(C)
-    helper = Point.Cross(ad, ab)
-    return Point.Cross(helper, dc)
 
 def is_short_side(p1, p2):
     # TODO: assumes purulaatikko always oriented same
@@ -260,9 +128,6 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     higher_reach += generate_lower_reach(porch_polygon, 3750.0)
     wall_studs += generate_wall_studs(porch_polygon, 1000.0, 2650)
 
-    # stiffener experiment
-    stiffeners = stiffen_wall(master_polygon, 1000.0, 3850, roof_angle, mass_center)
-    porch_stiffeners = stiffen_wall(porch_polygon, 1000.0, 2850, roof_angle, mass_center)
 
     # bit different
     roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
@@ -273,35 +138,33 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     #trace("sockle is: " + pprint.pformat(sockle))
     #trace("footing is: " + pprint.pformat(footing))
 
-    combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
+    #combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
     
-    with open('data.json', 'w') as jsonfile:
-        json.dump([named_section("footing", footing),
+    combined_data = [named_section("footing", footing),
             named_section("sockle", sockle),
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("stiffeners", stiffeners),
-            named_section("porch_stiffeners", porch_stiffeners),
-            named_section("roof_woods", roof_woods, 12)], jsonfile, cls=MyEncoder, indent=2)
+            named_section("roof_woods", roof_woods, 12)]
+
+    # stiffener experiment
+    stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
+    porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, 2850, roof_angle, mass_center)
+    
+    for stf in stiffeners + porch_stiffeners:
+        combined_data.append(named_section(stf.name, stf.get_part_data()))
+
+    with open('data.json', 'w') as jsonfile:
+        json.dump(combined_data, jsonfile, cls=MyEncoder, indent=2)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
 
-def named_section(name, part_list, ts_class=None):
+def named_section(name, part_list, ts_class=None, planes=None):
     # todo: can add assembly meta, classes etc.
     if ts_class is not None:
         for part in part_list:
             part["klass"] = ts_class
-    return { "section": name, "parts": part_list, "fitplane": None }
-
-def get_part_data(profile, rotation, points, material, ts_class=None):
-    return {
-        "profile": profile,
-        "rotation": rotation,
-        "points": points,
-        "material": material,
-        "klass": ts_class
-    }
+    return { "section": name, "parts": part_list, "planes": planes }
 
 def generate_lower_reach(polygon, z_offset, mass_center=None):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset + 50.0, "Timber_Undefined", mass_center)
@@ -316,11 +179,6 @@ def offset_porch_woods_outwards(porch_polygon, mass_center):
         outwards_for_stiffeners = Point(0, -22, 0)
     porch_polygon[0].Translate(outwards_for_stiffeners)
     porch_polygon[-1].Translate(outwards_for_stiffeners)
-
-def create_wood_at(point, point2, profile, rotation=None):
-    low_point = point.Clone()
-    high_point = point2.Clone()
-    return get_part_data(profile, rotation, [low_point, high_point], "Timber_Undefined")
 
 def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
     #overscan = 600.0 # negative to expand
@@ -368,19 +226,25 @@ def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holpp
         roofparts.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
     return roofparts
 
-def stiffen_wall(stiff_poly, z_offset, height, roof_angle, mass_center):
+def stiffen_wall(prefix, stiff_poly, z_offset, height, roof_angle, mass_center):
     centerlines = generate_offsetted_lines(stiff_poly, -11.0, z_offset, None, mass_center)
     # todo stiff it up
     stiffs = []
+    counter = 1
     for aa,bb in centerlines:
         use_angle = None
+        is_short = False
         if is_short_side(aa,bb):
             use_angle = roof_angle
+            is_short = True
         wallline = aa.GetVectorTo(bb)
-        rotation = direction_to_rotation(wallline)
-        eps = stiffener_one_plane(aa, bb, None, height, use_angle)
-        for ss,tt in eps:
-           stiffs.append(create_wood_at(ss,tt, "22*100", Rotation.FRONT))
+        #rotation = direction_to_rotation(wallline)
+        eps = Stiffener(prefix + "_" + str(counter), mass_center)
+        #trace(aa, bb, height, use_angle)
+        eps.stiffener_one_plane(aa, bb, height, use_angle)
+        stiffs.append(eps)
+        #for ss,tt in eps:
+        #   stiffs.append(create_wood_at(ss,tt, "22*100", Rotation.FRONT))
     return stiffs
 
 def generate_wall_studs(polygon, z_offset, height, roofangle=None):
@@ -544,9 +408,6 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
         first_item = False
     return polygonMidpoints
 
-def trace(*args, **kwargs):
-    print(*args, file = sys.stderr, **kwargs)
-    
 from json import JSONEncoder
 class MyEncoder(JSONEncoder):
     def default(self, o):
@@ -569,8 +430,6 @@ if __name__ == "__main__":
          - ullakko ristikko
          - kattolappeet per puoli -> porch business
          - elevation grid, and roof centerline definitions
-         - get_ceiling unnecessary call
-         - vinolautoja hukassa
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))

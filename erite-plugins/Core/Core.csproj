@@ -105,8 +105,14 @@
     <Content Include="..\..\python-proto\geometry.py">
       <Link>python\geometry.py</Link>
     </Content>
+    <Content Include="..\..\python-proto\helpers.py">
+      <Link>python\helpers.py</Link>
+    </Content>
     <Content Include="..\..\python-proto\point.py">
       <Link>python\point.py</Link>
+    </Content>
+    <Content Include="..\..\python-proto\stiffeners.py">
+      <Link>python\stiffeners.py</Link>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
