@@ -1,6 +1,10 @@
 import math
 import sys
 from constantdict import ConstantDict
+import transformations
+from point import Point
+import numpy
+
 
 class Rotation(ConstantDict):
     """Tekla Position.Rotation"""
@@ -37,3 +41,24 @@ def get_part_data(profile, rotation, points, material, ts_class=None):
         "material": material,
         "klass": ts_class
     }
+
+class CoordinateSystem(object):
+    def __init__( self, origin, normal ):
+        self.origin = origin
+        self.normal = normal
+
+    def origin(self):
+        return self.origin.ToArr()
+
+    def normal(self):
+        return self.normal.ToArr()
+
+def convert_points(points, coordinate_system):
+    transform_matrix = reflection_matrix(coordinate_system.origin(), coordinate_system.normal())
+    converted = []
+    for point in points:
+        data = point.ToArr()
+        temp = np.dot(transform_matrix, data.T).T
+        pp = Point(temp[0], temp[1], temp[2])
+        converted.append()
+        trace("conv: ", pp)

@@ -113,6 +113,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     high_polygon1 = generate_loop(grid_x, grid_y, None, high_pairs1)
     high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
 
+    cladding_pairs = [(0,2,1),(0,1,1),(0,1,2),(0,2,2)]
+    cladding_loop = generate_loop(grid_x, grid_y, grid_z, cladding_pairs)
+    cladding_test = create_cladding(cladding_loop, "22*125", 33)
     # Used for testing stiffeners
     #stiff_pairs = [(0,1),(3,1)]
     #stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
@@ -148,6 +151,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     #trace("low: " + pprint.pformat(lower_reach))
     #trace("sockle is: " + pprint.pformat(sockle))
     #trace("footing is: " + pprint.pformat(footing))
+
+    # first 3d loop experiment
+
 
     #combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
     
@@ -258,6 +264,14 @@ def stiffen_wall(prefix, stiff_poly, z_offset, height, roof_angle, mass_center):
         #for ss,tt in eps:
         #   stiffs.append(create_wood_at(ss,tt, "22*100", Rotation.FRONT))
     return stiffs
+
+def create_cladding(cladding_loop, profile, outwards):
+    facades = []
+    counter = 1
+    A = cladding_loop[0].GetVectorTo(cladding_loop[1])
+    B = cladding_loop[0].GetVectorTo(cladding_loop[-1])
+    coordinate_system = CoordinateSystem(Point(cladding_loop[0]), A.Cross(B))
+    test = convert_points(cladding_loop, coordinate_system)
 
 def generate_wall_studs(polygon, z_offset, height, roofangle=None):
     # todo: purulaatikko constant
@@ -444,6 +458,10 @@ if __name__ == "__main__":
          - elevation grid, and roof centerline definitions
          - ulkovuorilaud. + rimat + nurkka + vesip.
          - kattoruoteet + pellit + (holpat)
+         - loop-object with continues(), corners adjust
+         - python 2d shapely grid for cladding
+           (https://gis.stackexchange.com/questions/91362/looking-for-a-simple-hatching-algorithm)
+         - 
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
