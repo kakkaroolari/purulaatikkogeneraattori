@@ -114,6 +114,9 @@
     <Content Include="..\..\python-proto\stiffeners.py">
       <Link>python\stiffeners.py</Link>
     </Content>
+    <Content Include="..\..\python-proto\transformations.py">
+      <Link>python\transformations.py</Link>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
