@@ -49,13 +49,24 @@ def parse_width(profile):
     trace("profile width: " + width)
     return float(width)
 
-def generate_loop(grid_x, grid_y, pairs):
+def generate_loop(grid_x, grid_y, grid_z, pairs):
     master_polygon = []
     xx = toDistances(grid_x)
     yy = toDistances(grid_y)
-    for x_ind,y_ind in pairs:
+    if not grid_z: #hack
+        grid_z = [0.0]
+    zz = toDistances(grid_z)
+    #for x_ind,y_ind,z_ind in pairs:
+    for item in pairs:
+        z_ind = None
+        try:
+            x_ind,y_ind,z_ind = item
+        except ValueError:
+            x_ind,y_ind = item
+        if not z_ind:
+            z_ind = 0
         # zero level z
-        edge = Point(xx[x_ind], yy[y_ind], 0.0)
+        edge = Point(xx[x_ind], yy[y_ind], zz[z_ind])
         master_polygon.append(edge)
     return master_polygon
 
@@ -68,7 +79,7 @@ def is_short_side(p1, p2):
     # TODO: assumes purulaatikko always oriented same
     return abs(p2.y-p1.y) > 5000 
 
-def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_angle):
+def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
     pairs = [(0,1),
         #(1,1),
@@ -79,28 +90,28 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
         (3,2),
         (0,2),
         (0,1)]
-    master_polygon = generate_loop(grid_x, grid_y, pairs)
+    master_polygon = generate_loop(grid_x, grid_y, None, pairs)
     #trace(pprint.pformat(master_polygon))
 
     porch = [(1,1),
         (1,0),
         (2,0),
         (2,1)]
-    porch_polygon = generate_loop(grid_x, grid_y, porch)
+    porch_polygon = generate_loop(grid_x, grid_y, None, porch)
 
     roof_pairs = [(0,1),
         (3,1),
         (3,2),
         (0,2),
         (0,1)]
-    roof_polygon = generate_loop(grid_x, grid_y, roof_pairs)
+    roof_polygon = generate_loop(grid_x, grid_y, None, roof_pairs)
 
     high_pairs1 = [(0,1),
         (3,1)]
     high_pairs2 = [(0,2),
         (3,2)]
-    high_polygon1 = generate_loop(grid_x, grid_y, high_pairs1)
-    high_polygon2 = generate_loop(grid_x, grid_y, high_pairs2)
+    high_polygon1 = generate_loop(grid_x, grid_y, None, high_pairs1)
+    high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
 
     # Used for testing stiffeners
     #stiff_pairs = [(0,1),(3,1)]
@@ -151,6 +162,7 @@ def write_out(grid_x, grid_y, sockleProfile, footingProfile, centerline, roof_an
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
     porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, 2850, roof_angle, mass_center)
     
+
     for stf in stiffeners + porch_stiffeners:
         combined_data.append(named_section(stf.name, stf.get_part_data()))
 
@@ -430,16 +442,23 @@ if __name__ == "__main__":
          - ullakko ristikko
          - kattolappeet per puoli -> porch business
          - elevation grid, and roof centerline definitions
+         - ulkovuorilaud. + rimat + nurkka + vesip.
+         - kattoruoteet + pellit + (holpat)
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
+    roofangle = 36.64
     
+    # todo: add centerline to master grid later..
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 7600.00]
+    grid_z = [0.00, 1000.00, 4700.00, 4850.00]
+    # harja
+    grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
     centerline = [Point(0, 1660.0 + 7600.0 / 2, 0), Point(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
     sockle = "800*200"
     footing = "200*500"
 
     #trace("CONVERTED:\n" + pprint.pformat(attr_dict))
-    write_out(grid_x, grid_y, sockle, footing, centerline, 36.64)
+    write_out(grid_x, grid_y, grid_z, sockle, footing, centerline, roofangle)
 
