@@ -167,7 +167,7 @@ class Point( object ):
     # ---------------------- numpy wrap ----------------------
     def seg_isect_wrap(a, b, n, m):
         isect = seg_intersect(a.ToArr(), b.ToArr(), n.ToArr(), m.ToArr())
-        print("np.arr:", isect)
+        #print("np.arr:", isect)
         return Point(isect[0], isect[1], isect[2])
 
     def ToList(self):
@@ -218,7 +218,7 @@ class Point( object ):
     # yet another intersect
     def isect_line_plane_v3_wrap(p0, p1, p_co, p_no):
         isect = isect_line_plane_v3(p0.ToList(), p1.ToList(), p_co.ToList(), p_no.ToList())
-        print("np.arr:", isect)
+        #print("np.arr:", isect)
         return Point(isect[0], isect[1], isect[2])
 
 # intersection function

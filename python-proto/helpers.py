@@ -1,9 +1,9 @@
 import math
 import sys
 from constantdict import ConstantDict
-import transformations
+from transformations import reflection_matrix
 from point import Point
-import numpy
+import numpy as np
 
 
 class Rotation(ConstantDict):
@@ -44,21 +44,23 @@ def get_part_data(profile, rotation, points, material, ts_class=None):
 
 class CoordinateSystem(object):
     def __init__( self, origin, normal ):
-        self.origin = origin
-        self.normal = normal
+        self._origin = origin
+        self._normal = normal
 
     def origin(self):
-        return self.origin.ToArr()
+        return self._origin.ToArr()
 
     def normal(self):
-        return self.normal.ToArr()
+        return self._normal.ToArr()
 
 def convert_points(points, coordinate_system):
     transform_matrix = reflection_matrix(coordinate_system.origin(), coordinate_system.normal())
+    trace("cp: ", coordinate_system.origin(), " n: ", coordinate_system.normal())
     converted = []
     for point in points:
-        data = point.ToArr()
-        temp = np.dot(transform_matrix, data.T).T
+        data = [point.x, point.y, point.z, 1]
+        trace("dd: ", data)
+        temp = np.dot(transform_matrix, data)
         pp = Point(temp[0], temp[1], temp[2])
-        converted.append()
+        converted.append(pp)
         trace("conv: ", pp)
