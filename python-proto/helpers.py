@@ -56,12 +56,24 @@ class CoordinateSystem(object):
         return self._normal.ToArr()
 
 def convert_points(points, coordinate_system):
-    vector1 = [0,0,50]
+    vector1 = np.array([0,0,50])
     vector2 = coordinate_system.normal()
+    vector2 = [50,0,0]
     # rotation
-    angle = angle_between_vectors(vector1, vector2, True)
+    angle = angle_between_vectors(vector1, vector2, False)
     #matrix1 = rotation_matrix(angle, -1*np.cross(vector2, vector1)).T
-    matrix1 = rotation_matrix(angle, np.cross(vector1, vector2)).T
+    direction = np.cross(vector1, vector2)
+    direction = [0,50,0]
+    trace("normal_to: ", vector2, "Angle: ", angle, " direction: ", direction)
+    matrix1 = rotation_matrix(angle, [0,1,0])
+    matrix11 = rotation_matrix(angle, [0,0,1])
+    #matrix1 = rotation_matrix(angle, [1,0,0], coordinate_system.origin())
+    #matrix1 = rotation_matrix(angle, [0,0,-1], coordinate_system.origin())
+    #matrix1 = rotation_matrix(angle, [0,-1,0], coordinate_system.origin())
+    #matrix1 = rotation_matrix(angle, [-1,0,0], coordinate_system.origin())
+    #matrix1 = rotation_matrix(angle, [0,0,0], coordinate_system.origin())
+    #matrix1 = rotation_matrix(angle, [0,0,0], coordinate_system.origin())
+    #matrix1 = rotation_matrix(angle, [0,0,0], coordinate_system.origin())
     # translate
     matrix2 = translation_matrix(-1*coordinate_system.origin())
     #transform_matrix = projection_matrix([1000,9620,1000], coordinate_system.normal())
@@ -74,8 +86,9 @@ def convert_points(points, coordinate_system):
         #temp = transform_matrix.dot(data)
         #pp = Point(temp[0], temp[1], temp[2])
         #converted.append(pp)
-        data = apply_transforms(matrix1, data)
         data = apply_transforms(matrix2, data)
+        data = apply_transforms(matrix1, data)
+        data = apply_transforms(matrix11, data)
         converted.append(data)
         trace("conv: ", data)
 
@@ -84,4 +97,4 @@ def apply_transforms(transform_matrix, point):
     m = np.array(transform_matrix)    
     mat = m[:3, :3].T # rotates backwards without T
     loc = m[:3, 3]
-    return point @ mat + loc
+    return np.array(point @ mat + loc)
