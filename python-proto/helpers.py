@@ -63,7 +63,7 @@ def convert_points(points, coordinate_system):
     angle = angle_between_vectors(vector1, vector2, False)
     #matrix1 = rotation_matrix(angle, -1*np.cross(vector2, vector1)).T
     direction = np.cross(vector1, vector2)
-    direction = [0,50,0]
+    #direction = [0,50,0]
     trace("normal_to: ", vector2, "Angle: ", angle, " direction: ", direction)
     matrix1 = rotation_matrix(angle, [0,1,0])
     matrix11 = rotation_matrix(angle, [0,0,1])
@@ -80,8 +80,8 @@ def convert_points(points, coordinate_system):
     trace("cp: ", coordinate_system.origin(), " n: ", coordinate_system.normal())
     converted = []
     for point in points:
-        #data = [point.x, point.y, point.z, 1]
-        data = [point.x, point.y, point.z]
+        data = [point.x, point.y, point.z, 1]
+        #data = [point.x, point.y, point.z]
         trace("dd: ", data)
         #temp = transform_matrix.dot(data)
         #pp = Point(temp[0], temp[1], temp[2])
@@ -89,12 +89,17 @@ def convert_points(points, coordinate_system):
         data = apply_transforms(matrix2, data)
         data = apply_transforms(matrix1, data)
         data = apply_transforms(matrix11, data)
-        converted.append(data)
-        trace("conv: ", data)
+        point = Point(f2(data[0]), f2(data[1]), f2(data[2]))
+        converted.append(point)
+        trace("conv: ", point)
 
 def apply_transforms(transform_matrix, point):
     """Get vert coords in world space"""
-    m = np.array(transform_matrix)    
-    mat = m[:3, :3].T # rotates backwards without T
-    loc = m[:3, 3]
-    return np.array(point @ mat + loc)
+    #m = np.array(transform_matrix)    
+    #mat = m[:3, :3].T # rotates backwards without T
+    #loc = m[:3, 3]
+    #return np.array(point @ mat + loc)
+    return transform_matrix.dot(point)
+
+def f2(num):
+    return round(num,2)
