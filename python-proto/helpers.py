@@ -6,6 +6,9 @@ from transformations import (translation_matrix,
                              angle_between_vectors)
 from point import Point
 import numpy as np
+#import bpy
+from mathutils import Vector
+from math import degrees
 
 
 class Rotation(ConstantDict):
@@ -58,15 +61,20 @@ class CoordinateSystem(object):
 def convert_points(points, coordinate_system):
     vector1 = np.array([0,0,50])
     vector2 = coordinate_system.normal()
-    vector2 = [50,0,0]
+    v0 = Vector(( vector1[0],vector1[1],vector1[2] ))
+    v1 = Vector(( vector2[0],vector2[1],vector2[2] ))
+    #vector2 = [50,0,0]
     # rotation
-    angle = angle_between_vectors(vector1, vector2, False)
+    #angle = angle_between_vectors(vector1, vector2)
+    rot = v1.rotation_difference( v0 ).to_euler()
     #matrix1 = rotation_matrix(angle, -1*np.cross(vector2, vector1)).T
-    direction = np.cross(vector1, vector2)
+    #direction = np.cross(vector1, vector2)
     #direction = [0,50,0]
-    trace("normal_to: ", vector2, "Angle: ", angle, " direction: ", direction)
-    matrix1 = rotation_matrix(angle, [0,1,0])
-    matrix11 = rotation_matrix(angle, [0,0,1])
+    #trace("normal_to: ", vector2, "Angle: ", angle, " direction: ", direction)
+    trace([ degrees( a ) for a in rot ] )
+    matrix1 = rotation_matrix(rot[0], [1,0,0])
+    matrix11 = rotation_matrix(rot[1], [0,1,0])
+    matrix111 = rotation_matrix(rot[2], [0,0,1])
     #matrix1 = rotation_matrix(angle, [1,0,0], coordinate_system.origin())
     #matrix1 = rotation_matrix(angle, [0,0,-1], coordinate_system.origin())
     #matrix1 = rotation_matrix(angle, [0,-1,0], coordinate_system.origin())
@@ -89,6 +97,7 @@ def convert_points(points, coordinate_system):
         data = apply_transforms(matrix2, data)
         data = apply_transforms(matrix1, data)
         data = apply_transforms(matrix11, data)
+        data = apply_transforms(matrix111, data)
         point = Point(f2(data[0]), f2(data[1]), f2(data[2]))
         converted.append(point)
         trace("conv: ", point)
