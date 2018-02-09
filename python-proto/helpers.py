@@ -11,6 +11,8 @@ import numpy as np
 from mathutils import Vector
 from math import degrees
 
+import math3d
+
 
 class Rotation(ConstantDict):
     """Tekla Position.Rotation"""
@@ -97,19 +99,19 @@ def convert_points(points, transformation_plane):
 
     trace("points      x,y,z: ", (xp), (yp), (zp))
     trace("projections x,y,z: ", ff2(xpp), ff2(ypp), ff2(zpp))
-    a_x = get_angle([0,1,0], ypp[:3], 'y')
+    a_x = get_angle([0,1,0], ypp[:3], 'y', index=0)
     #trace("angle z z'", ff2([0,0,1]), ff2(ypp[:3]))
-    a_y = get_angle([0,0,1], zpp[:3], 'z')
-    a_z = get_angle([1,0,0], xpp[:3], 'x')
+    a_y = get_angle([0,0,1], zpp[:3], 'z', index=1)
+    a_z = get_angle([1,0,0], xpp[:3], 'x', index=2)
     trace("Angles x,y,z: ", a_x, a_y, a_z)
 
     # create a rotation matrix
-    mat_rx = rotation_matrix(a_x, [1,0,0])
-    mat_ry = rotation_matrix(a_y, [0,1,0])
-    mat_rz = rotation_matrix(a_z, [0,0,1])
+    mat_rx = rotation_matrix(a_x, [0,1,0])
+    mat_ry = rotation_matrix(a_y, [0,0,1])
+    mat_rz = rotation_matrix(a_z, [1,0,0])
     mat_rot = mat_rx * mat_ry * mat_rz
     matrix2 = translation_matrix(-1*transformation_plane.origin())
-    re_base = mat_rot * matrix2
+    #re_base = mat_rot * matrix2
 
     converted = []
     for point in points:
@@ -120,13 +122,22 @@ def convert_points(points, transformation_plane):
         #pp = Point(temp[0], temp[1], temp[2])
         #converted.append(pp)
         data = apply_transforms(matrix2, data)
-        data = apply_transforms(mat_rot, data)
+        data = apply_transforms(mat_rot, data).T
         point = Point(f2(data[0]), f2(data[1]), f2(data[2]))
         converted.append(point)
         trace("conv: ", point)
 
-def get_angle(v1, v2, pt):
+def get_angle(v1, v2, pt, index=None):
     ng = angle_between_vectors(v1, v2, directed=True)
+    trace("angle " + pt + " " + pt + "' "+ str(ff2(v1)) + " -> " + str(ff2(v2)))
+    # devel 
+    v11 = Vector(( v1[0],v1[1],v1[2] ))
+    v22 = Vector(( v2[0],v2[1],v2[2] ))
+    rot = v22.rotation_difference( v11 ).to_euler()
+    if index is not None:
+        trace("TEST: " + str(rot))
+        return rot[index]
+
     trace("angle " + pt + " " + pt + "' "+ str(ff2(v1)) + " -> " + str(ff2(v2))      +" is:" + str(ng))
     return ng
 
