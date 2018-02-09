@@ -40,13 +40,13 @@ def parse_profile(profile):
 def parse_height(profile):
     m = parse_profile(profile)
     height = m.group(1)
-    trace("profile height: " + height)
+    #trace("profile height: " + height)
     return float(height)
 
 def parse_width(profile):
     m = parse_profile(profile)
     width = m.group(2)
-    trace("profile width: " + width)
+    #trace("profile width: " + width)
     return float(width)
 
 def generate_loop(grid_x, grid_y, grid_z, pairs):
@@ -121,7 +121,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     #stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
 
     mass_center = centroid(master_polygon)
-    trace("centroid is: ", mass_center)
+    #trace("centroid is: ", mass_center)
     #trace("sockle is: ", ', '.join([str(x) for x in polygon]))
     # TODO: make the layers bottom up and increase z offset
     z_offset = parse_height(footingProfile)
@@ -213,7 +213,7 @@ def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
     count = int((mainwall_length - 2 * holppa) / 900.0)
     othercorner = roof_polygon[-2].Clone()
     othercorner.Translate(0, 0, z_offset)
-    trace("begin: ", begin, " other: ", othercorner)
+    #trace("begin: ", begin, " other: ", othercorner)
     sidewall = begin.distFrom(othercorner)
     # ylajuoksun linja shiftataan harjakorkeutaan
     half_width = sidewall / 2
@@ -221,7 +221,7 @@ def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
     # ylatukipuun linja siftataan raystaslinjaksi
     halflife2 = 600.0
     roofdeclination = -halflife2 * math.tan(math.radians(roof_angle))
-    trace("halflife: ", half_width, " dist: ", mainwall_length, " elev: ", roofelevation)
+    #trace("halflife: ", half_width, " dist: ", mainwall_length, " elev: ", roofelevation)
     # todo: much same as wall panel framing
     lowside = create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation, -halflife2, roofdeclination)
     highside = create_one_side_trusses(othercorner, mainwall, mainwall_length, count, last, holppa, -half_width, roofelevation, halflife2, roofdeclination)
@@ -286,7 +286,7 @@ def generate_wall_studs(polygon, z_offset, height, roofangle=None):
         # do one wall line
         direction = start.GetVectorTo(end)
         rotation = direction_to_rotation(direction)
-        trace("beam rot type: ", type(rotation))
+        #trace("beam rot type: ", type(rotation))
         length = start.distFrom(end)
         count = int((length - 200.0) / 600.0)
         # stud grid along one edge
@@ -419,8 +419,8 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
         bb = end.Clone()
         if not first_item or is_closed_loop(master_polygon):
             aa.Translate(corners)
-        else:
-            trace("------------ skip 1")
+        #else:
+        #    trace("------------ skip 1")
         #if not is_last_item(master_polygon, bb) and
         #is_closed_loop(master_polygon):
         bb.Translate(corners)

@@ -55,7 +55,7 @@ class Stiffener( object ):
             roofangle = None
         C = B.CopyLinear(0,0,get_ceiling(startpoint, B, height, length, roofangle))
         D = A.CopyLinear(0,0,height)
-        trace("ABCD: ", A, B, C, D)
+        #trace("ABCD: ", A, B, C, D)
         # fit vectors (to export json)
         self.planes.append((A.Clone(), A.GetVectorTo(B)),)
         self.planes.append((A.Clone(), A.GetVectorTo(D)),)
@@ -79,7 +79,7 @@ class Stiffener( object ):
         bb.Translate(toM)
         grid_direction = Point.Normalize(towards_up.Add(towards_xy), 100)
         counter = int(boxmax/gridfull)
-        trace("stiff count: ", counter)
+        #trace("stiff count: ", counter)
         for rep in range(counter):
             aa.Translate(grid_direction)
             bb.Translate(grid_direction)
@@ -115,7 +115,7 @@ class Stiffener( object ):
         #return precut_stiffeners
         # continue to other side, transpose 90 deg
         stiffener_dir = Point.Normalize(grid_direction, boxmax)
-        trace("boxmax: ", boxmax, stiffener_dir)
+        #trace("boxmax: ", boxmax, stiffener_dir)
         #grid_direction = get_roof_vector(A,B,C,D).Normalize(-50)
         last_ninja.Translate(0,0,-math.sqrt(50*50+50*50)) # ca 70 mm down
         #last_ninja.Traslate(grid_direction) # ca 70 mm down

@@ -95,14 +95,18 @@ def convert_points(points, transformation_plane):
     ypp = ym.dot(yp_)#.ToArr())
     zpp = zm.dot(zp_)#.ToArr())
 
-    a_x = angle_between_vectors([0,1,0], ypp[:3])
-    a_y = angle_between_vectors([0,0,1], zpp[:3])
-    a_z = angle_between_vectors([1,0,0], xpp[:3])
+    trace("points      x,y,z: ", (xp), (yp), (zp))
+    trace("projections x,y,z: ", ff2(xpp), ff2(ypp), ff2(zpp))
+    a_x = get_angle([0,1,0], ypp[:3], 'y')
+    #trace("angle z z'", ff2([0,0,1]), ff2(ypp[:3]))
+    a_y = get_angle([0,0,1], zpp[:3], 'z')
+    a_z = get_angle([1,0,0], xpp[:3], 'x')
+    trace("Angles x,y,z: ", a_x, a_y, a_z)
 
     # create a rotation matrix
-    mat_rx = rotation_matrix(a_x, [0,0,1])
-    mat_ry = rotation_matrix(a_y, [1,0,0])
-    mat_rz = rotation_matrix(a_z, [0,1,0])
+    mat_rx = rotation_matrix(a_x, [1,0,0])
+    mat_ry = rotation_matrix(a_y, [0,1,0])
+    mat_rz = rotation_matrix(a_z, [0,0,1])
     mat_rot = mat_rx * mat_ry * mat_rz
     matrix2 = translation_matrix(-1*transformation_plane.origin())
     re_base = mat_rot * matrix2
@@ -115,10 +119,17 @@ def convert_points(points, transformation_plane):
         #temp = transform_matrix.dot(data)
         #pp = Point(temp[0], temp[1], temp[2])
         #converted.append(pp)
-        data = apply_transforms(re_base, data)
+        data = apply_transforms(matrix2, data)
+        data = apply_transforms(mat_rot, data)
         point = Point(f2(data[0]), f2(data[1]), f2(data[2]))
         converted.append(point)
         trace("conv: ", point)
+
+def get_angle(v1, v2, pt):
+    ng = angle_between_vectors(v1, v2, directed=True)
+    trace("angle " + pt + " " + pt + "' "+ str(ff2(v1)) + " -> " + str(ff2(v2))      +" is:" + str(ng))
+    return ng
+
 
 def apply_transforms(transform_matrix, point):
     """Get vert coords in world space"""
@@ -127,6 +138,9 @@ def apply_transforms(transform_matrix, point):
     #loc = m[:3, 3]
     #return np.array(point @ mat + loc)
     return transform_matrix.dot(point)
+
+def ff2(grid):
+    return Point(f2(grid[0]), f2(grid[1]), f2(grid[2]))
 
 def f2(num):
     return round(num,2)
