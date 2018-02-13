@@ -11,7 +11,7 @@ import numpy as np
 from mathutils import Vector
 from math import degrees
 
-import math3d
+import math3d as m3d
 
 
 class Rotation(ConstantDict):
@@ -53,8 +53,8 @@ def get_part_data(profile, rotation, points, material, ts_class=None):
 class TransformationPlane(object):
     def __init__( self, origin, x_axis, y_axis ):
         self._origin = origin
-        self._x_axis = x_axis
-        self._y_axis = y_axis
+        self._x_axis = Point.Normalize(x_axis)
+        self._y_axis = Point.Normalize(y_axis)
 
     def origin(self):
         return self._origin.ToArr()
@@ -84,46 +84,43 @@ def convert_points(points, transformation_plane):
     xp = transformation_plane.x_axis()
     yp = transformation_plane.y_axis()
     zp = Point.Cross(xp, yp)
+    zp = Point.Normalize(zp)
+
     # y' projected y on yz (normal=x)
-    xm = projection_matrix(origo, [1,0,0])
-    ym = projection_matrix(origo, [0,1,0])
-    zm = projection_matrix(origo, [0,0,1])
+    X1 = np.array([1,0,0]) # XAxisWorld
+    X2 = np.array([0,1,0]) # YAxisWorld
+    X3 = np.array([0,0,1]) # ZAxisWorld
 
-    xp_ = [xp.x, xp.y, xp.z, 1]
-    yp_ = [yp.x, yp.y, yp.z, 1]
-    zp_ = [zp.x, zp.y, zp.z, 1]
-    # apply projection matrices
-    xpp = xm.dot(xp_)#.ToArr())
-    ypp = ym.dot(yp_)#.ToArr())
-    zpp = zm.dot(zp_)#.ToArr())
+    # These vectors are the local X,Y,Z of the rotated object
+    X1Prime = xp.ToArr()
+    X2Prime = yp.ToArr()
+    X3Prime = zp.ToArr()
 
-    trace("points      x,y,z: ", (xp), (yp), (zp))
-    trace("projections x,y,z: ", ff2(xpp), ff2(ypp), ff2(zpp))
-    a_x = get_angle([0,1,0], ypp[:3], 'y', index=0)
-    #trace("angle z z'", ff2([0,0,1]), ff2(ypp[:3]))
-    a_y = get_angle([0,0,1], zpp[:3], 'z', index=1)
-    a_z = get_angle([1,0,0], xpp[:3], 'x', index=2)
-    trace("Angles x,y,z: ", a_x, a_y, a_z)
-
-    # create a rotation matrix
-    mat_rx = rotation_matrix(a_x, [0,1,0])
-    mat_ry = rotation_matrix(a_y, [0,0,1])
-    mat_rz = rotation_matrix(a_z, [1,0,0])
-    mat_rot = mat_rx * mat_ry * mat_rz
+    # This matrix will transform points
+    # from the world back to the rotated axis
+    WorldToLocalTransform = np.matrix(
+        [[np.dot(X1Prime, X1),
+          np.dot(X1Prime, X2),
+          np.dot(X1Prime, X3)],
+         [np.dot(X2Prime, X1),
+          np.dot(X2Prime, X2),
+          np.dot(X2Prime, X3)],
+         [np.dot(X3Prime, X1),
+          np.dot(X3Prime, X2),
+          np.dot(X3Prime, X3)]]
+        )
     matrix2 = translation_matrix(-1*transformation_plane.origin())
-    #re_base = mat_rot * matrix2
 
     converted = []
     for point in points:
         data = [point.x, point.y, point.z, 1]
         #data = [point.x, point.y, point.z]
         trace("dd: ", data)
-        #temp = transform_matrix.dot(data)
-        #pp = Point(temp[0], temp[1], temp[2])
-        #converted.append(pp)
-        data = apply_transforms(matrix2, data)
-        data = apply_transforms(mat_rot, data).T
-        point = Point(f2(data[0]), f2(data[1]), f2(data[2]))
+        temp = matrix2.dot(data)
+        data = WorldToLocalTransform.dot(temp[:3])
+        trace("dot: ", data)
+        A = np.squeeze(np.asarray(data))
+        point = Point(f2(A[0]), f2(A[1]), f2(A[2]))
         converted.append(point)
         trace("conv: ", point)
 
