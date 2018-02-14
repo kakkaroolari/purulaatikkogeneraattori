@@ -272,7 +272,9 @@ def create_cladding(cladding_loop, profile, outwards):
     B = cladding_loop[0].GetVectorTo(cladding_loop[-1])
     #coordinate_system = CoordinateSystem(cladding_loop[0], B.Cross(A))
     coordinate_system = TransformationPlane(cladding_loop[0], A, B)
-    test = convert_points(cladding_loop, coordinate_system)
+    transform = Transformer(coordinate_system)
+    test = transform.convertToLocal(cladding_loop)
+    testback = transform.convertToGlobal(test)
 
 def generate_wall_studs(polygon, z_offset, height, roofangle=None):
     # todo: purulaatikko constant

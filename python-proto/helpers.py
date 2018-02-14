@@ -79,50 +79,83 @@ def rotated_vector_mat(axisFrom, axisTo):
     print(mat_out)
     return mat_out
 
-def convert_points(points, transformation_plane):
-    origo = np.array([0,0,0])
-    xp = transformation_plane.x_axis()
-    yp = transformation_plane.y_axis()
-    zp = Point.Cross(xp, yp)
-    zp = Point.Normalize(zp)
+class Transformer(object):
+    def __init__(self, transformation_plane):
 
-    # y' projected y on yz (normal=x)
-    X1 = np.array([1,0,0]) # XAxisWorld
-    X2 = np.array([0,1,0]) # YAxisWorld
-    X3 = np.array([0,0,1]) # ZAxisWorld
+        origo = np.array([0,0,0])
+        xp = transformation_plane.x_axis()
+        yp = transformation_plane.y_axis()
+        zp = Point.Cross(xp, yp)
+        zp = Point.Normalize(zp)
 
-    # These vectors are the local X,Y,Z of the rotated object
-    X1Prime = xp.ToArr()
-    X2Prime = yp.ToArr()
-    X3Prime = zp.ToArr()
+        # y' projected y on yz (normal=x)
+        X1 = np.array([1,0,0]) # XAxisWorld
+        X2 = np.array([0,1,0]) # YAxisWorld
+        X3 = np.array([0,0,1]) # ZAxisWorld
 
-    # This matrix will transform points
-    # from the world back to the rotated axis
-    WorldToLocalTransform = np.matrix(
-        [[np.dot(X1Prime, X1),
-          np.dot(X1Prime, X2),
-          np.dot(X1Prime, X3)],
-         [np.dot(X2Prime, X1),
-          np.dot(X2Prime, X2),
-          np.dot(X2Prime, X3)],
-         [np.dot(X3Prime, X1),
-          np.dot(X3Prime, X2),
-          np.dot(X3Prime, X3)]]
-        )
-    matrix2 = translation_matrix(-1*transformation_plane.origin())
+        # These vectors are the local X,Y,Z of the rotated object
+        X1Prime = xp.ToArr()
+        X2Prime = yp.ToArr()
+        X3Prime = zp.ToArr()
 
-    converted = []
-    for point in points:
-        data = [point.x, point.y, point.z, 1]
-        #data = [point.x, point.y, point.z]
-        trace("dd: ", data)
-        temp = matrix2.dot(data)
-        data = WorldToLocalTransform.dot(temp[:3])
-        trace("dot: ", data)
-        A = np.squeeze(np.asarray(data))
-        point = Point(f2(A[0]), f2(A[1]), f2(A[2]))
-        converted.append(point)
-        trace("conv: ", point)
+        # This matrix will transform points
+        # from the world to the rotated axis
+        aWorldToLocalTransform = np.matrix(
+            [[np.dot(X1Prime, X1),
+              np.dot(X1Prime, X2),
+              np.dot(X1Prime, X3),
+              0],
+             [np.dot(X2Prime, X1),
+              np.dot(X2Prime, X2),
+              np.dot(X2Prime, X3),
+              0],
+             [np.dot(X3Prime, X1),
+              np.dot(X3Prime, X2),
+              np.dot(X3Prime, X3),
+              0],
+              [0,0,0,1]]
+            )
+        matrix2 = translation_matrix(-1*transformation_plane.origin())
+        self.WorldToLocalTransform = aWorldToLocalTransform * matrix2
+
+        # This matrix will transform points
+        # from the rotated axis back to the world
+        aLocalToWorldTransform  = np.matrix(
+            [[np.dot(X1, X1Prime),
+              np.dot(X1, X2Prime),
+              np.dot(X1, X3Prime),
+              0],
+             [np.dot(X2, X1Prime),
+              np.dot(X2, X2Prime),
+              np.dot(X2, X3Prime),
+              0],
+             [np.dot(X3, X1Prime),
+              np.dot(X3, X2Prime),
+              np.dot(X3, X3Prime),
+              0],
+              [0,0,0,1]]
+            )
+        matrix4 = translation_matrix(transformation_plane.origin())
+        self.LocalToWorldTransform = matrix4 * aLocalToWorldTransform
+
+    def convertToLocal(self, points):
+        return self.convert_by_matrix(points, self.WorldToLocalTransform)
+
+    def convertToGlobal(self, points):
+        return self.convert_by_matrix(points, self.LocalToWorldTransform)
+
+    def convert_by_matrix(self, points, matrix):
+        converted = []
+        for point in points:
+            data = [point.x, point.y, point.z, 1]
+            trace("dd: ", data)
+            data = matrix.dot(data)
+            A = np.squeeze(np.asarray(data))
+            # TODO: f2 rounds by 1/100 mm, bad if not 90 degree stuff?
+            point = Point(f2(A[0]), f2(A[1]), f2(A[2]))
+            converted.append(point)
+            trace("conv: ", point)
+        return converted
 
 def get_angle(v1, v2, pt, index=None):
     ng = angle_between_vectors(v1, v2, directed=True)
