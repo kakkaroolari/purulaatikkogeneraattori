@@ -3,7 +3,7 @@ from __future__ import print_function
 import sys
 import os
 import pprint
-from point import Point
+from point import Point3
 from stiffeners import Stiffener
 import itertools #import izip
 import re
@@ -21,7 +21,7 @@ def centroid(points):
     x = [p.x for p in points]
     y = [p.y for p in points]
     z = [p.z for p in points]
-    centroid = Point(sum(x) / len(points), sum(y) / len(points), sum(z) / len(points))
+    centroid = Point3(sum(x) / len(points), sum(y) / len(points), sum(z) / len(points))
     return centroid
 
 def toDistances(distanceList):
@@ -66,7 +66,7 @@ def generate_loop(grid_x, grid_y, grid_z, pairs):
         if not z_ind:
             z_ind = 0
         # zero level z
-        edge = Point(xx[x_ind], yy[y_ind], zz[z_ind])
+        edge = Point3(xx[x_ind], yy[y_ind], zz[z_ind])
         master_polygon.append(edge)
     return master_polygon
 
@@ -162,6 +162,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
+            named_section("cladding_test", cladding_test), # todo: oikeasti class niinku stiffeners
             named_section("roof_woods", roof_woods, 12)]
 
     # stiffener experiment
@@ -192,9 +193,9 @@ def offset_porch_woods_outwards(porch_polygon, mass_center):
     between = porch_mass.GetVectorTo(mass_center)
     if abs(between.x) > abs(between.y):
         # extrude x-axis
-        outwards_for_stiffeners = Point(-22, 0, 0)
+        outwards_for_stiffeners = Point3(-22, 0, 0)
     else:
-        outwards_for_stiffeners = Point(0, -22, 0)
+        outwards_for_stiffeners = Point3(0, -22, 0)
     porch_polygon[0].Translate(outwards_for_stiffeners)
     porch_polygon[-1].Translate(outwards_for_stiffeners)
 
@@ -231,7 +232,7 @@ def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holpp
     direction = mainwall.Clone()
     pt_array = point_grid(begin, direction, count, holppa, 900)
     # stupid way to add last roof truss
-    towards = Point.Normalize(direction, last)
+    towards = Point3.Normalize(direction, last)
     last_ninja = pt_array[-1].Clone()
     last_ninja.Translate(towards)
     pt_array.append(last_ninja)
@@ -273,8 +274,16 @@ def create_cladding(cladding_loop, profile, outwards):
     #coordinate_system = CoordinateSystem(cladding_loop[0], B.Cross(A))
     coordinate_system = TransformationPlane(cladding_loop[0], A, B)
     transform = Transformer(coordinate_system)
-    test = transform.convertToLocal(cladding_loop)
-    testback = transform.convertToGlobal(test)
+    endwall = transform.convertToLocal(cladding_loop)
+    point_pairs = create_hatch(endwall, 125.0, 50, 50)
+    boards = []
+    for pp in point_pairs:
+        pp_global = transform.convertToGlobal(pp)
+        lowpoint = pp_global[1]
+        highpoint = pp_global[0]
+        boards.append(create_wood_at(lowpoint, highpoint, profile, Rotation.FRONT))
+    #testback = transform.convertToGlobal(test)
+    return boards
 
 def generate_wall_studs(polygon, z_offset, height, roofangle=None):
     # todo: purulaatikko constant
@@ -318,10 +327,10 @@ def point_grid(startpoint, dir_vector, count, first_offset, kdist):
     # normal 4x2's
     current = startpoint.Clone()
     if abs(first_offset) > 0.5:
-        towards = Point.Normalize(direction, first_offset)
+        towards = Point3.Normalize(direction, first_offset)
         current.Translate(towards)
     grid.append(current.Clone())
-    towards = Point.Normalize(direction, kdist)
+    towards = Point3.Normalize(direction, kdist)
     #trace("start: {0}, end:{1}, direction: {2}".format(start, end, direction))
     for i in range(count):
         #trace("counting: ", i)
@@ -375,7 +384,7 @@ def generate_offsetted_beams(polygon, profile, xy_offset, z_offset, material, ma
             first_offset = 0
         if abs(first_offset) > 0.5:
             direction = aa.GetVectorTo(bb)
-            towards = Point.Normalize(direction, first_offset)
+            towards = Point3.Normalize(direction, first_offset)
             aa.Translate(towards)
         beams.append(get_part_data(profile, None, [aa, bb], material))
         first_item = False
@@ -412,7 +421,7 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
     for start,end in footingLines:
         vector = start.GetVectorTo(end)
         #trace(start, )
-        corners = Point.Normalize(vector, adjustEndPoints)
+        corners = Point3.Normalize(vector, adjustEndPoints)
         #trace("start: {0}, end:{1}, direction: {2} translate vector:
         #{3}".format(start, end, vector, corners,))
         #start.Translate(corners)
@@ -476,7 +485,7 @@ if __name__ == "__main__":
     grid_z = [0.00, 1000.00, 4700.00, 4850.00]
     # harja
     grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
-    centerline = [Point(0, 1660.0 + 7600.0 / 2, 0), Point(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
+    centerline = [Point3(0, 1660.0 + 7600.0 / 2, 0), Point3(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
     sockle = "800*200"
     footing = "200*500"
 

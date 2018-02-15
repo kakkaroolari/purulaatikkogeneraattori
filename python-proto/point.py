@@ -70,11 +70,11 @@ def mul_v3_fl(v0, f):
         )
 
 # no depss... end...
-class Point( object ):
+class Point3( object ):
     def __init__( self, x, y, z ):
         self.x, self.y, self.z = x, y, z
     def distFrom( self, x, y=None, z=None ):
-        if isinstance(x, Point):
+        if isinstance(x, Point3):
             (x,y,z) = (x.x, x.y, x.z)
         return math.sqrt( (self.x-x)**2 + (self.y-y)**2 + (self.z-z)**2 )
     
@@ -87,9 +87,9 @@ class Point( object ):
                 abs(self.z - other.z) < 0.5 )
 
     def Add(self, x, y=None, z=None):
-        if isinstance(x, Point):
+        if isinstance(x, Point3):
             (x,y,z) = (x.x, x.y, x.z)
-        return Point(self.x + x, self.y + y, self.z + z)
+        return Point3(self.x + x, self.y + y, self.z + z)
 
     def moveCloserTo(self, point, amount):
         new_x = self.x
@@ -104,10 +104,10 @@ class Point( object ):
             new_y += amount
         else:
             new_y -= amount
-        return Point(new_x, new_y, new_z)
+        return Point3(new_x, new_y, new_z)
     
     def Translate(self, x, y=None, z=None):
-        if isinstance(x, Point):
+        if isinstance(x, Point3):
             (x,y,z) = (x.x, x.y, x.z)
         self.x += x
         self.y += y
@@ -115,14 +115,14 @@ class Point( object ):
 
     # helper
     def CopyLinear(self, x, y=None, z=None):
-        if isinstance(x, Point):
+        if isinstance(x, Point3):
             (x,y,z) = (x.x, x.y, x.z)
         copy = self.Clone()
         copy.Translate(x, y, z)
         return copy
 
     def Clone(self):
-        return self.moveCloserTo(Point(0.00,0.00,0.00), 0.0)
+        return self.moveCloserTo(Point3(0.00,0.00,0.00), 0.0)
     
     def GetVectorTo(self, point):
         copy = self.Clone()
@@ -132,22 +132,22 @@ class Point( object ):
         return copy
 
     def Normalize(vector, lenght=1):
-        vmag = Point.magnitude(vector)
-        normalized = Point(vector.x/vmag, vector.y/vmag, vector.z/vmag)
+        vmag = Point3.magnitude(vector)
+        normalized = Point3(vector.x/vmag, vector.y/vmag, vector.z/vmag)
         normalized.x *= lenght
         normalized.y *= lenght
         normalized.z *= lenght
         return normalized
 
     def Reversed(vector):
-        return Point(-vector.x, -vector.y, -vector.z)
+        return Point3(-vector.x, -vector.y, -vector.z)
 
     def Midpoint(p1, p2):
-        return Point((p1.x+p2.x)/2, (p1.y+p2.y)/2, (p1.z+p2.z)/2)
+        return Point3((p1.x+p2.x)/2, (p1.y+p2.y)/2, (p1.z+p2.z)/2)
 
     # rainy day module..
     def Cross(a, b):
-        c = Point(a.y*b.z - a.z*b.y,
+        c = Point3(a.y*b.z - a.z*b.y,
              a.z*b.x - a.x*b.z,
              a.x*b.y - a.y*b.x)
         return c
@@ -168,7 +168,7 @@ class Point( object ):
     def seg_isect_wrap(a, b, n, m):
         isect = seg_intersect(a.ToArr(), b.ToArr(), n.ToArr(), m.ToArr())
         #print("np.arr:", isect)
-        return Point(isect[0], isect[1], isect[2])
+        return Point3(isect[0], isect[1], isect[2])
 
     def ToList(self):
         return [self.x, self.y, self.z]
@@ -203,7 +203,7 @@ class Point( object ):
         else:
             x = (B2*C1 - B1*C2)/det;
             y = (A1 * C2 - A2 * C1) / det;
-            return Point(x,y,0)
+            return Point3(x,y,0)
 
     #def default(self, obj):
     #    return {"point" : {"x":obj.x,"y":obj.y,"z":obj.z}}
@@ -219,7 +219,7 @@ class Point( object ):
     def isect_line_plane_v3_wrap(p0, p1, p_co, p_no):
         isect = isect_line_plane_v3(p0.ToList(), p1.ToList(), p_co.ToList(), p_no.ToList())
         #print("np.arr:", isect)
-        return Point(isect[0], isect[1], isect[2])
+        return Point3(isect[0], isect[1], isect[2])
 
 # intersection function
 def isect_line_plane_v3(p0, p1, p_co, p_no, epsilon=1e-6):

@@ -1,6 +1,6 @@
 import sys
 import math
-from point import Point
+from point import Point3
 from helpers import *
 #from geometry import create_wood_at
 
@@ -48,7 +48,7 @@ class Stiffener( object ):
         length = startpoint.distFrom(endpoint)
         boxmax = max(height*2, length) * math.sqrt(2)
         A = startpoint.Clone()
-        B = Point.Midpoint(startpoint, endpoint)
+        B = Point3.Midpoint(startpoint, endpoint)
         extremely_short_wall = length < 3000
         if extremely_short_wall:
             B = endpoint.Clone() # TODO: fix this, won't work with upper roof polygon stuff
@@ -69,15 +69,15 @@ class Stiffener( object ):
         # directions 
         increment_h = wall_line
         stiffener_lines = []
-        towards_xy = Point.Normalize(wall_line, gridfull) # todo begin at full
-        towards_up = Point(0,0,gridfull) # z-vector
+        towards_xy = Point3.Normalize(wall_line, gridfull) # todo begin at full
+        towards_up = Point3(0,0,gridfull) # z-vector
         aa = startpoint.Clone()
         bb = startpoint.Clone()
-        toN = Point.Normalize(towards_up.Add(towards_xy.Reversed()), boxmax)
-        toM = Point.Normalize(towards_xy.Add(towards_up.Reversed()), boxmax)
+        toN = Point3.Normalize(towards_up.Add(towards_xy.Reversed()), boxmax)
+        toM = Point3.Normalize(towards_xy.Add(towards_up.Reversed()), boxmax)
         aa.Translate(toN)
         bb.Translate(toM)
-        grid_direction = Point.Normalize(towards_up.Add(towards_xy), 100)
+        grid_direction = Point3.Normalize(towards_up.Add(towards_xy), 100)
         counter = int(boxmax/gridfull)
         #trace("stiff count: ", counter)
         for rep in range(counter):
@@ -92,16 +92,16 @@ class Stiffener( object ):
         # precut'em
         for N,M in stiffener_lines:
             # 1. cut AD -> nm
-            beg = Point.isect_line_plane_v3_wrap(N,M,A,wall_line)
+            beg = Point3.isect_line_plane_v3_wrap(N,M,A,wall_line)
             # 2. if no, DC -> nm
             if beg.distFrom(A) > height:
-                beg = Point.isect_line_plane_v3_wrap(N,M,D,roof_normal_vector)
+                beg = Point3.isect_line_plane_v3_wrap(N,M,D,roof_normal_vector)
             # 3. cut AB -> nm
-            end = Point.isect_line_plane_v3_wrap(N,M,A,towards_up)
+            end = Point3.isect_line_plane_v3_wrap(N,M,A,towards_up)
             # if no, BC -> nm
             cutlength = length if extremely_short_wall else length/2
             if end.distFrom(A) > cutlength:
-                end = Point.isect_line_plane_v3_wrap(N,M,B,towards_xy)
+                end = Point3.isect_line_plane_v3_wrap(N,M,B,towards_xy)
             # skip all going over
             if beg.z - B.z > ceiling + 10.0 or end.z - B.z > ceiling + 10.0:
                 continue
@@ -114,7 +114,7 @@ class Stiffener( object ):
             self.precut_stiffeners = None
         #return precut_stiffeners
         # continue to other side, transpose 90 deg
-        stiffener_dir = Point.Normalize(grid_direction, boxmax)
+        stiffener_dir = Point3.Normalize(grid_direction, boxmax)
         #trace("boxmax: ", boxmax, stiffener_dir)
         #grid_direction = get_roof_vector(A,B,C,D).Normalize(-50)
         last_ninja.Translate(0,0,-math.sqrt(50*50+50*50)) # ca 70 mm down
@@ -134,13 +134,13 @@ class Stiffener( object ):
             # 1. cut BE -> nm
             beg = N.Clone()
             if beg.z < B.z:
-                beg = Point.isect_line_plane_v3_wrap(N,M,B,towards_up)
+                beg = Point3.isect_line_plane_v3_wrap(N,M,B,towards_up)
             # 2. cut EF -> nm
             end = M.Clone()
-            end = Point.isect_line_plane_v3_wrap(N,M,E,towards_xy)
+            end = Point3.isect_line_plane_v3_wrap(N,M,E,towards_xy)
             # 3. cut FC -> nm (if there's a roof angle)
             if end.distFrom(E) > height: #and roofangle:
-                end = Point.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
+                end = Point3.isect_line_plane_v3_wrap(N,M,F,get_roof_vector(E,B,C,F))
                 # skip all going under (10 mm tolerance)
             if beg.z < B.z - 10.0 or end.z < B.z - 10.0:
                 continue
@@ -153,5 +153,5 @@ def get_roof_vector(A,B,C,D):
     ad = A.GetVectorTo(D)
     ab = A.GetVectorTo(B)
     dc = D.GetVectorTo(C)
-    helper = Point.Cross(ad, ab)
-    return Point.Cross(helper, dc)
+    helper = Point3.Cross(ad, ab)
+    return Point3.Cross(helper, dc)
