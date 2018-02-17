@@ -12,7 +12,11 @@ from mathutils import Vector
 from math import degrees
 
 #import math3d as m3d
-from shapely.geometry import box, MultiLineString, Point
+from shapely.geometry import (box,
+                              MultiLineString,
+                              Point,
+                              LineString,
+                              LinearRing)
 from shapely.affinity import rotate
 from shapely import speedups
 from math import sqrt
@@ -217,14 +221,28 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None):
 
     page = box(min_x, min_y, max_x, max_y)
     spoints = hatchbox(page, 90, actual_interval)
+    wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
+    #cladding_hatch = wall_polygon.intersection(spoints)
     trace("interval actual: ", actual_interval, max_x, min_x)
+
+    #for linestr in cladding_hatch.geoms:
+    #    trace("chatch: ", linestr)
 
     pps = []
     # convert back to 3d points
     for linestr in spoints.geoms:
+    #for linestr in cladding_hatch.geoms:
+        source = linestr.coords
+        # check isect
+        coll = linestr.intersection(wall_polygon)
+        #trace("col: ", coll, source)
+        if 2 == len(coll):
+            source = LineString(coll).coords
+
+        #trace("intersect: ", coll)
         linepts = []
-        for x,y in linestr.coords:
-            #trace("begin: ", begin, " end: ", end)
+        for x,y in source:
+            #trace("begin: ", x, " end: ", y)
             #pps.append(Point3(*begin[0], *begin[1], 0))#, Point3(*end[0], *end[1], 0))
             linepts.append(Point3(x, y, 0))
             #trace(begin, end)

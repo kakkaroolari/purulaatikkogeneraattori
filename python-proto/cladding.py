@@ -17,7 +17,8 @@ class Cladding( object ):
         coordinate_system = TransformationPlane(cladding_loop[0], A, B)
         transform = Transformer(coordinate_system)
         endwall = transform.convertToLocal(cladding_loop)
-        point_pairs = create_hatch(endwall, 125.0, 50, 50)
+        # todo: hardcoded magic numbers, 127 mm should fit 22x125 (?)
+        point_pairs = create_hatch(endwall, 127.0, 50, 50)
         #boards = []
         for pp in point_pairs:
             offsetted = []
