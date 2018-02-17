@@ -99,6 +99,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\..\python-proto\cladding.py">
+      <Link>python\cladding.py</Link>
+    </Content>
     <Content Include="..\..\python-proto\constantdict.py">
       <Link>python\constantdict.py</Link>
     </Content>

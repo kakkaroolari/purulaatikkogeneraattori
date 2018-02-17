@@ -156,13 +156,13 @@ class Transformer(object):
         converted = []
         for point in points:
             data = [point.x, point.y, point.z, 1]
-            trace("dd: ", data)
+            #trace("dd: ", data)
             data = matrix.dot(data)
             A = np.squeeze(np.asarray(data))
             # TODO: f2 rounds by 1/100 mm, bad if not 90 degree stuff?
             point = Point3(f2(A[0]), f2(A[1]), f2(A[2]))
             converted.append(point)
-            trace("conv: ", point)
+            #trace("conv: ", point)
         return converted
 
 def get_angle(v1, v2, pt, index=None):
@@ -211,11 +211,13 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None):
         max_x -= last_offset
 
     # round down to nearest fitting millimeter
-    actual_interval = int((max_x - min_x) / interval_wish)
+    width = abs(max_x - min_x)
+    board_count = int(width / interval_wish)
+    actual_interval = width / board_count
 
     page = box(min_x, min_y, max_x, max_y)
     spoints = hatchbox(page, 90, actual_interval)
-    trace("shapely-out: ")#, spoints)
+    trace("interval actual: ", actual_interval, max_x, min_x)
 
     pps = []
     # convert back to 3d points

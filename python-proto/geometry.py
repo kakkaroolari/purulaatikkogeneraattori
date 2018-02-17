@@ -5,6 +5,7 @@ import os
 import pprint
 from point import Point3
 from stiffeners import Stiffener
+from cladding import Cladding
 import itertools #import izip
 import re
 import json
@@ -113,9 +114,12 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     high_polygon1 = generate_loop(grid_x, grid_y, None, high_pairs1)
     high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
 
+    # todo: move somplace more appropriate?
     cladding_pairs = [(0,2,1),(0,1,1),(0,1,2),(0,2,2)]
     cladding_loop = generate_loop(grid_x, grid_y, grid_z, cladding_pairs)
-    cladding_test = create_cladding(cladding_loop, "22*125", 33)
+    fieldsaw = Cladding("cladding")
+    fieldsaw.create_cladding(cladding_loop, "22*125", 33) # ( 22 + 22/2 ) mm
+    cladding_test = fieldsaw.get_part_data()
     # Used for testing stiffeners
     #stiff_pairs = [(0,1),(3,1)]
     #stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
@@ -266,24 +270,7 @@ def stiffen_wall(prefix, stiff_poly, z_offset, height, roof_angle, mass_center):
         #   stiffs.append(create_wood_at(ss,tt, "22*100", Rotation.FRONT))
     return stiffs
 
-def create_cladding(cladding_loop, profile, outwards):
-    facades = []
-    counter = 1
-    A = cladding_loop[0].GetVectorTo(cladding_loop[1])
-    B = cladding_loop[0].GetVectorTo(cladding_loop[-1])
-    #coordinate_system = CoordinateSystem(cladding_loop[0], B.Cross(A))
-    coordinate_system = TransformationPlane(cladding_loop[0], A, B)
-    transform = Transformer(coordinate_system)
-    endwall = transform.convertToLocal(cladding_loop)
-    point_pairs = create_hatch(endwall, 125.0, 50, 50)
-    boards = []
-    for pp in point_pairs:
-        pp_global = transform.convertToGlobal(pp)
-        lowpoint = pp_global[1]
-        highpoint = pp_global[0]
-        boards.append(create_wood_at(lowpoint, highpoint, profile, Rotation.FRONT))
-    #testback = transform.convertToGlobal(test)
-    return boards
+
 
 def generate_wall_studs(polygon, z_offset, height, roofangle=None):
     # todo: purulaatikko constant
@@ -482,7 +469,7 @@ if __name__ == "__main__":
     # todo: add centerline to master grid later..
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 7600.00]
-    grid_z = [0.00, 1000.00, 4700.00, 4850.00]
+    grid_z = [0.00, 1000.00, 3700.00, 4850.00]
     # harja
     grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
     centerline = [Point3(0, 1660.0 + 7600.0 / 2, 0), Point3(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
