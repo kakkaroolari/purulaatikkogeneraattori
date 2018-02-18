@@ -153,12 +153,13 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650, roof_angle)
 
     # porch
+    porch_decline = 1660.00*math.tan(math.radians(roof_angle))
     footing += generate_footing(porch_polygon, footingProfile, sockleProfile)
     sockle += generate_sockle(porch_polygon, sockleProfile, z_offset)
     offset_porch_woods_outwards(porch_polygon, mass_center)
     lower_reach += generate_lower_reach(porch_polygon, 1000.0)
-    higher_reach += generate_lower_reach(porch_polygon, 3750.0)
-    wall_studs += generate_wall_studs(porch_polygon, 1000.0, 2650)
+    higher_reach += generate_lower_reach(porch_polygon, 4750.0-porch_decline)
+    wall_studs += generate_wall_studs(porch_polygon, 1000.0, 3650-porch_decline)
 
 
     # bit different
@@ -185,7 +186,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
-    porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, 2850, roof_angle, mass_center)
+    porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, 3850-porch_decline, roof_angle, mass_center)
     
 
     for stf in stiffeners + porch_stiffeners:
