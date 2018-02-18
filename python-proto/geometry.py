@@ -116,11 +116,16 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
-    cladding_loop = generate_loop(grid_x, grid_y, grid_z, [(0,3,1),(0,1,1),(0,1,2),(0,3,2)])
-    fieldsaw.create_cladding(cladding_loop, "22*125", 33) # ( 22 + 22/2 ) mm
-    # top triangle
-    cladding_loop = generate_loop(grid_x, grid_y, grid_z, [(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)])
-    fieldsaw.create_cladding(cladding_loop, "22*125", 33)
+    board_areas = {
+        "paaty_ala": [(0,3,1),(0,1,1),(0,1,2),(0,3,2)],
+        "paaty_kolmio": [(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)],
+        "vasemmalla": [(0,1,1), (1,1,1), (1,1,3),(0,1,3)],
+        "oikealla": [(2,1,1), (3,1,1), (3,1,3),(2,1,3) ]
+        }
+    for key, value in board_areas.items():
+        trace("Creating cladding for: ", key)
+        cladding_loop = generate_loop(grid_x, grid_y, grid_z, value)
+        fieldsaw.create_cladding(cladding_loop, "22*125", 33)
 
     cladding_test = fieldsaw.get_part_data()
     # Used for testing stiffeners
@@ -169,7 +174,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("cladding_test", cladding_test), # todo: oikeasti class niinku stiffeners
+            named_section("cladding_test", cladding_test, 93), # todo: oikeasti class niinku stiffeners
             named_section("roof_woods", roof_woods, 12)]
 
     # stiffener experiment
@@ -328,20 +333,6 @@ def point_grid(startpoint, dir_vector, count, first_offset, kdist):
         grid.append(current.Clone())
     return grid
 
-    
-def direction_to_rotation(direction, invert=False):
-    (x, y) = (direction.x, direction.y)
-    if invert:
-        temp = x
-        x = y
-        y = temp
-    if abs(y) > abs(x):
-        if y > 0:
-            return Rotation.FRONT
-        return Rotation.BACK
-    if x > 0:
-        return Rotation.TOP
-    return Rotation.BELOW
 
 def generate_sockle(foundationPolygon, sockleProfile, z_offset):
     sockleCenter = []

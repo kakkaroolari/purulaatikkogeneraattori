@@ -33,6 +33,22 @@ class Rotation(ConstantDict):
     BACK = 2
     BELOW = 3
 
+    
+def direction_to_rotation(direction, invert=False):
+    (x, y) = (direction.x, direction.y)
+    if invert:
+        temp = x
+        x = y
+        y = temp
+    if abs(y) > abs(x):
+        if y > 0:
+            return Rotation.FRONT
+        return Rotation.BACK
+    if x > 0:
+        return Rotation.TOP
+    return Rotation.BELOW
+
+
 def get_ceiling(current, start, height, fullwidth, roofangle):
     if not roofangle:
         return height

@@ -13,6 +13,7 @@ class Cladding( object ):
         counter = 1
         A = cladding_loop[0].GetVectorTo(cladding_loop[1])
         B = cladding_loop[0].GetVectorTo(cladding_loop[-1])
+        rotation = direction_to_rotation(Point3.Cross(A, B))
         #coordinate_system = CoordinateSystem(cladding_loop[0], B.Cross(A))
         coordinate_system = TransformationPlane(cladding_loop[0], A, B)
         transform = Transformer(coordinate_system)
@@ -28,7 +29,7 @@ class Cladding( object ):
             pp_global = transform.convertToGlobal(offsetted)
             lowpoint = pp_global[1]#.Translate(0,0,outwards)
             highpoint = pp_global[0]
-            self.precut_cladding.append((lowpoint, highpoint, profile, Rotation.TOP,))
+            self.precut_cladding.append((lowpoint, highpoint, profile, rotation,))
         #testback = transform.convertToGlobal(test)
         #return boards
 
