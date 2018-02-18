@@ -115,10 +115,13 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
 
     # todo: move somplace more appropriate?
-    cladding_pairs = [(0,3,1),(0,1,1),(0,1,2),(0,3,2)]
-    cladding_loop = generate_loop(grid_x, grid_y, grid_z, cladding_pairs)
     fieldsaw = Cladding("cladding")
+    cladding_loop = generate_loop(grid_x, grid_y, grid_z, [(0,3,1),(0,1,1),(0,1,2),(0,3,2)])
     fieldsaw.create_cladding(cladding_loop, "22*125", 33) # ( 22 + 22/2 ) mm
+    # top triangle
+    cladding_loop = generate_loop(grid_x, grid_y, grid_z, [(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)])
+    fieldsaw.create_cladding(cladding_loop, "22*125", 33)
+
     cladding_test = fieldsaw.get_part_data()
     # Used for testing stiffeners
     #stiff_pairs = [(0,1),(3,1)]
@@ -469,9 +472,9 @@ if __name__ == "__main__":
     # todo: add centerline to master grid later..
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 3800.00, 3800.00]
-    grid_z = [0.00, 1000.00, 3700.00, 4850.00]
+    grid_z = [0.00, 1000.00, 3700.00, 150.00, 3800*math.tan(math.radians(roofangle))]
     # harja
-    grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
+    #grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
     centerline = [Point3(0, 1660.0 + 7600.0 / 2, 0), Point3(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
     sockle = "800*200"
     footing = "200*500"
