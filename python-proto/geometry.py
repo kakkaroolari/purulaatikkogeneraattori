@@ -120,7 +120,13 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         "paaty_ala": [(0,3,1),(0,1,1),(0,1,2),(0,3,2)],
         "paaty_kolmio": [(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)],
         "vasemmalla": [(0,1,1), (1,1,1), (1,1,3),(0,1,3)],
-        "oikealla": [(2,1,1), (3,1,1), (3,1,3),(2,1,3) ]
+        "oikealla": [(2,1,1), (3,1,1), (3,1,3),(2,1,3)],
+        "etela_ala": [(3,1,1), (3,3,1), (3,3,2),(3,1,2)],
+        "etela_yla": [(3,1,2), (3,3,2), (3,3,3),(3,2,4),(3,1,3)],
+        "takaseina": [(3,3,1), (0,3,1), (0,3,3),(3,3,3) ],
+        "kuisti_vas": [(1,1,1), (1,0,1), (1,0,2),(1,1,2) ],
+        "kuisti_etu": [(1,0,1), (2,0,1), (2,0,2),(1,0,2) ],
+        "kuisti_oik": [(2,0,1), (2,1,1), (2,1,2),(2,0,2) ]
         }
     for key, value in board_areas.items():
         trace("Creating cladding for: ", key)
