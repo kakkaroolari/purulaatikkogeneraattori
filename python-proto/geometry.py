@@ -117,16 +117,16 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        "paaty_ala": [(0,3,1),(0,1,1),(0,1,2),(0,3,2)],
-        "paaty_kolmio": [(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)],
-        "vasemmalla": [(0,1,1), (1,1,1), (1,1,3),(0,1,3)],
-        "oikealla": [(2,1,1), (3,1,1), (3,1,3),(2,1,3)],
-        "etela_ala": [(3,1,1), (3,3,1), (3,3,2),(3,1,2)],
-        "etela_yla": [(3,1,2), (3,3,2), (3,3,3),(3,2,4),(3,1,3)],
-        "takaseina": [(3,3,1), (0,3,1), (0,3,3),(3,3,3) ],
-        "kuisti_vas": [(1,1,1), (1,0,1), (1,0,2),(1,1,2) ],
+        "paaty_ala": [(0,3,1),(0,1,1),(0,1,3),(0,3,3)],
+        "paaty_kolmio": [(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)],
+        "vasemmalla": [(0,1,1), (1,1,1), (1,1,4),(0,1,4)],
+        "oikealla": [(2,1,1), (3,1,1), (3,1,4),(2,1,4)],
+        "etela_ala": [(3,1,1), (3,3,1), (3,3,3),(3,1,3)],
+        "etela_yla": [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)],
+        "takaseina": [(3,3,1), (0,3,1), (0,3,4),(3,3,4) ],
+        "kuisti_vas": [(1,1,1), (1,0,1), (1,0,2),(1,1,3) ],
         "kuisti_etu": [(1,0,1), (2,0,1), (2,0,2),(1,0,2) ],
-        "kuisti_oik": [(2,0,1), (2,1,1), (2,1,2),(2,0,2) ]
+        "kuisti_oik": [(2,0,1), (2,1,1), (2,1,3),(2,0,2) ]
         }
     for key, value in board_areas.items():
         trace("Creating cladding for: ", key)
@@ -465,11 +465,12 @@ if __name__ == "__main__":
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
     roofangle = 36.64
+    porch_decline = 1660*math.tan(math.radians(roofangle))
     
     # todo: add centerline to master grid later..
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 3800.00, 3800.00]
-    grid_z = [0.00, 1000.00, 3700.00, 150.00, 3800*math.tan(math.radians(roofangle))]
+    grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
     # harja
     #grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
     centerline = [Point3(0, 1660.0 + 7600.0 / 2, 0), Point3(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
