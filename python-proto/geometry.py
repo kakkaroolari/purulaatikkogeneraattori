@@ -88,8 +88,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         #(2,0),
         #(2,1),
         (3,1),
-        (3,2),
-        (0,2),
+        (3,3),
+        (0,3),
         (0,1)]
     master_polygon = generate_loop(grid_x, grid_y, None, pairs)
     #trace(pprint.pformat(master_polygon))
@@ -102,20 +102,20 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     roof_pairs = [(0,1),
         (3,1),
-        (3,2),
-        (0,2),
+        (3,3),
+        (0,3),
         (0,1)]
     roof_polygon = generate_loop(grid_x, grid_y, None, roof_pairs)
 
     high_pairs1 = [(0,1),
         (3,1)]
-    high_pairs2 = [(0,2),
-        (3,2)]
+    high_pairs2 = [(0,3),
+        (3,3)]
     high_polygon1 = generate_loop(grid_x, grid_y, None, high_pairs1)
     high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
 
     # todo: move somplace more appropriate?
-    cladding_pairs = [(0,2,1),(0,1,1),(0,1,2),(0,2,2)]
+    cladding_pairs = [(0,3,1),(0,1,1),(0,1,2),(0,3,2)]
     cladding_loop = generate_loop(grid_x, grid_y, grid_z, cladding_pairs)
     fieldsaw = Cladding("cladding")
     fieldsaw.create_cladding(cladding_loop, "22*125", 33) # ( 22 + 22/2 ) mm
@@ -468,7 +468,7 @@ if __name__ == "__main__":
     
     # todo: add centerline to master grid later..
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
-    grid_y = [0.00, 1660.00, 7600.00]
+    grid_y = [0.00, 1660.00, 3800.00, 3800.00]
     grid_z = [0.00, 1000.00, 3700.00, 4850.00]
     # harja
     grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
