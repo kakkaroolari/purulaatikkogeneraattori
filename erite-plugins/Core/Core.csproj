@@ -114,6 +114,9 @@
     <Content Include="..\..\python-proto\point.py">
       <Link>python\point.py</Link>
     </Content>
+    <Content Include="..\..\python-proto\roofing.py">
+      <Link>python\roofing.py</Link>
+    </Content>
     <Content Include="..\..\python-proto\stiffeners.py">
       <Link>python\stiffeners.py</Link>
     </Content>
