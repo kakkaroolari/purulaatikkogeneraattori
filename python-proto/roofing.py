@@ -15,16 +15,17 @@ class Roofing( object ):
         """
         # first lape (xy plane)
         direction = face_polygon[0].GetVectorTo(face_polygon[1])
-        direction.Normalize(600)
-        #for point in face_polygon[1:-1]:
-            # move raystas 600 mm outwards
-            #point.Translate(direction)
+        direction = direction.Normalize(600)
         # now we should project this in actual roof plane (xyz)
         origo = face_polygon[1].Clone()
         A = origo.GetVectorTo(high_point_actual)
         B = origo.GetVectorTo(face_polygon[2])
         N = Point3.Cross(A, B)
-        trace("xy: ", A, B)
+        for point in face_polygon[1:-1]:
+            # move raystas 600 mm outwards
+            trace("extrude dir: ", direction)
+            # TODO: This shit makes holppa==125.00 mm brake
+            point.Translate(direction)
         mat = projection_matrix(origo.ToArr(), N.ToArr(), direction=[0,0,1])
         geomPlane = TransformationPlane(origo, B, A)
         self.transistor = Transformer(geomPlane) # geom plane is not used in convert_by_matrix
