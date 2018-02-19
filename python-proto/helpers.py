@@ -264,6 +264,8 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None):
             #trace(begin, end)
         #pps.push([Point3(x, y, 0), Point
         pps.append(linepts)
+    # sort pairs by rising x coord, to get e.g. rimalaudoitus in between
+    pps.sort(key=lambda tup: tup[1].x)  # sorts in place
     return pps
 
 

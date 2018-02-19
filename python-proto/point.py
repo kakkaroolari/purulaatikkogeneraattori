@@ -1,6 +1,6 @@
 import math
 import sys
-from numpy import *
+#from numpy import *
 import numpy as np
 
 # https://stackoverflow.com/questions/3252194/numpy-and-line-intersections
