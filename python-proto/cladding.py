@@ -34,7 +34,7 @@ class Cladding( object ):
                 rimaHigh = Point3.Midpoint(offsetted[0], previous_line[0])
                 rimaLow.Translate(0,0,22)
                 rimaHigh.Translate(0,0,22)
-                trace("rimalow: ", rimaLow, " high: ", rimaHigh)
+                #trace("rimalow: ", rimaLow, " high: ", rimaHigh)
                 rima = transform.convertToGlobal([rimaLow, rimaHigh])
                 self.rimat.append((rima[0], rima[1], "22*50", rotation,))
             previous_line = list(offsetted)

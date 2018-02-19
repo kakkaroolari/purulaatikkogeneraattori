@@ -6,11 +6,13 @@ import pprint
 from point import Point3
 from stiffeners import Stiffener
 from cladding import Cladding
+from roofing import Roofing
 import itertools #import izip
 import re
 import json
 import math
 from helpers import *
+
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -100,13 +102,6 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         (2,1)]
     porch_polygon = generate_loop(grid_x, grid_y, None, porch)
 
-    roof_pairs = [(0,1),
-        (3,1),
-        (3,3),
-        (0,3),
-        (0,1)]
-    roof_polygon = generate_loop(grid_x, grid_y, None, roof_pairs)
-
     high_pairs1 = [(0,1),
         (3,1)]
     high_pairs2 = [(0,3),
@@ -163,7 +158,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
 
     # bit different
-    roof_woods = generate_roof_studs(roof_polygon, 4900.0, centerline, roof_angle)
+    roof_woody = generate_roof_studs_2(grid_x, grid_y, grid_z)
+    roof_woods = roof_woody.get_part_data()
 
     #trace("high: " + pprint.pformat(higher_reach))
     #trace("studs: " + pprint.pformat(wall_studs))
@@ -217,6 +213,31 @@ def offset_porch_woods_outwards(porch_polygon, mass_center):
         outwards_for_stiffeners = Point3(0, -22, 0)
     porch_polygon[0].Translate(outwards_for_stiffeners)
     porch_polygon[-1].Translate(outwards_for_stiffeners)
+
+def generate_roof_studs_2(grid_x, grid_y, grid_z):
+    # xy plane
+    roof_tuples_1 = [(0,2,4), # with porch roof extension
+        (0,1,4),
+        (1,1,4),
+        (1,0,4),
+        (2,0,4),
+        (3,0,4),
+        (3,1,4),
+        (3,2,4)]
+    roof_polygon_1 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_1)
+    trace("roof poly 1: ", roof_polygon_1)
+    roof_tuples_2 = [(3,2,4),
+        (3,3,4),
+        (0,3,4),
+        (0,2,4)]
+    roof_polygon_2 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_2)
+    # centerline at highest elevation
+    centerline = generate_loop(grid_x, grid_y, grid_z, [(0,2,5),(3,2,5)])
+    trace("center: ", centerline)
+    roofer = Roofing("roof_studs")
+    roofer.do_one_roof_face(roof_polygon_1, centerline[0])
+    return roofer
+
 
 def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
     #overscan = 600.0 # negative to expand
