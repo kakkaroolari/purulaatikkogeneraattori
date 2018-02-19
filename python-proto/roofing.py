@@ -26,7 +26,7 @@ class Roofing( object ):
         N = Point3.Cross(A, B)
         trace("xy: ", A, B)
         mat = projection_matrix(origo.ToArr(), N.ToArr(), direction=[0,0,1])
-        geomPlane = TransformationPlane(origo, A, B)
+        geomPlane = TransformationPlane(origo, B, A)
         self.transistor = Transformer(geomPlane) # geom plane is not used in convert_by_matrix
         points_in_correct_plane = self.transistor.convert_by_matrix(face_polygon, mat)
         trace("roof is at: ", points_in_correct_plane)

@@ -221,7 +221,7 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z):
         (1,1,4),
         (1,0,4),
         (2,0,4),
-        (3,0,4),
+        (2,1,4),
         (3,1,4),
         (3,2,4)]
     roof_polygon_1 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_1)
