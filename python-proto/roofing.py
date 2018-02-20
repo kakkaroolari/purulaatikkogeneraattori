@@ -7,7 +7,7 @@ from transformations import projection_matrix
 class Roofing( object ):
     def __init__( self, section_name):
         self.name = section_name
-        self.point_pairs = []
+        self.roof_stud_coords = []
 
     def do_one_roof_face(self, face_polygon, high_point_actual):
         """ This is a geometry util func, Roofing will do the stuff.
@@ -36,21 +36,28 @@ class Roofing( object ):
         local_points = transistor.convertToLocal(points_in_correct_plane)
         #trace("local pts: ", local_points)
         holppa = 125.0
-        one_face_point_pairs = create_hatch(local_points, 900.0, holppa, holppa, ends_tight=True)
+        one_face_point_pairs = create_hatch(local_points, 900.0, holppa, holppa)
         # convert back to global csys
-        face_to_world = []
         for pp in one_face_point_pairs:
-            face_to_world.append(transistor.convertToGlobal(pp))
-        self.point_pairs.append(face_to_world)
+            #trace(pp)
+            pp2 = transistor.convertToGlobal(pp)
+            #trace(pp2)
+            #for lowpoint, highpoint in pp2:
+            # roof truss 5x2's
+            self.roof_stud_coords.append((pp2[0], pp2[1], "50*125", Rotation.FRONT,))
+        # rimat
+        for rr in one_face_point_pairs:
+            for point in rr:
+                # rimat above the studs
+                point.Translate(0,0,62.5 + 11)
+            rr2 = transistor.convertToGlobal(rr)
+            #for lowpoint, highpoint in rr2:
+            self.roof_stud_coords.append((rr2[0], rr2[1], "22*50", Rotation.TOP,))
+
 
     def get_part_data(self):
         roofparts = []
-        for pp in self.point_pairs:
-            for lowpoint, highpoint in pp:
-                #endpoint.Translate(0,0,outwards)
-                #offsetted()
-                # roof truss 5x2's
-                #line_to_world = self.transistor.convertToGlobal([lowpoint, highpoint])
-                #roofparts.append(create_wood_at(line_to_world[0], line_to_world[1], "50*125", Rotation.FRONT))
-                roofparts.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
+        #for pp in self.roof_stud_coords:
+        for lowpoint, highpoint, profile, rotation in self.roof_stud_coords:
+            roofparts.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         return roofparts

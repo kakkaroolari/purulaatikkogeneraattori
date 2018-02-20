@@ -214,7 +214,7 @@ def ff2(grid):
 def f2(num):
     return round(num,2)
 
-def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ends_tight=False):
+def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, horizontal=False):
     """ polygon: bounding box
         interval_wish: create i.e. 125mm boards, extend interval for equal spacing (rimalaudoitus)
         first_offset: like 50 mm. from corner (nurkkalaudat mahtuu)
@@ -239,7 +239,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, en
     actual_interval = width / spacing_count
     board_count = spacing_count + 1
 
-    x_offset = min_x
+    x_offset = min_x # todo: something wrong with zero here
     coords = []
     for i in range(board_count):
         coords.extend([((x_offset, max_y), (x_offset, min_y))])
@@ -247,7 +247,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, en
     # turn array into Shapely object
     spoints = MultiLineString(coords)
     #trace_multiline(spoints)
-    trace("msl: ", spoints)
+    #trace("msl: ", spoints)
 
     wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
     #cladding_hatch = wall_polygon.intersection(spoints)
@@ -261,7 +261,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, en
         source = linestr.coords
         # check isect
         coll = linestr.intersection(wall_polygon)
-        trace("col: ", coll, source)
+        #trace("col: ", coll, source)
         #try:
         if 2 == len(coll):
             source = LineString(coll).coords
@@ -279,7 +279,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, en
     # sort pairs by rising x coord, to get e.g. rimalaudoitus in between
     pps.sort(key=lambda tup: tup[1].x)  # sorts in place
 
-    trace("pps: ", pps[0][0])
+    #trace("pps: ", pps[0][0])
     return pps
 
 def trace_multiline(mls):
