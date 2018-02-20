@@ -7,11 +7,12 @@ from transformations import projection_matrix
 class Roofing( object ):
     def __init__( self, section_name):
         self.name = section_name
-        self.roof_stud_coords = []
+        self.roof_rafter_coords = []
 
     def do_one_roof_face(self, face_polygon, high_point_actual):
         """ This is a geometry util func, Roofing will do the stuff.
             order is important. This comment is utter bollocks.
+            todo: lape name
         """
         # first lape (xy plane)
         direction = face_polygon[0].GetVectorTo(face_polygon[1])
@@ -44,7 +45,7 @@ class Roofing( object ):
             #trace(pp2)
             #for lowpoint, highpoint in pp2:
             # roof truss 5x2's
-            self.roof_stud_coords.append((pp2[0], pp2[1], "50*125", Rotation.FRONT,))
+            self.roof_rafter_coords.append((pp2[0], pp2[1], "50*125", Rotation.FRONT,))
         # rimat
         for rr in one_face_point_pairs:
             for point in rr:
@@ -52,12 +53,13 @@ class Roofing( object ):
                 point.Translate(0,0,62.5 + 11)
             rr2 = transistor.convertToGlobal(rr)
             #for lowpoint, highpoint in rr2:
-            self.roof_stud_coords.append((rr2[0], rr2[1], "22*50", Rotation.TOP,))
+            self.roof_rafter_coords.append((rr2[0], rr2[1], "22*50", Rotation.TOP,))
+        # then rafters
 
 
     def get_part_data(self):
         roofparts = []
         #for pp in self.roof_stud_coords:
-        for lowpoint, highpoint, profile, rotation in self.roof_stud_coords:
+        for lowpoint, highpoint, profile, rotation in self.roof_rafter_coords:
             roofparts.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         return roofparts
