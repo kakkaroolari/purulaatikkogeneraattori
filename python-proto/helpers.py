@@ -16,7 +16,8 @@ from shapely.geometry import (box,
                               MultiLineString,
                               Point,
                               LineString,
-                              LinearRing)
+                              LinearRing,
+                              MultiPoint)
 from shapely.affinity import rotate
 from shapely import speedups
 from math import sqrt
@@ -225,33 +226,54 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
     max_x = max(p.x for p in polygon)
     max_y = max(p.y for p in polygon)
 
-    ##trace("minsmax1: ", min_x, max_x, " | ", min_y, max_y)
-    if first_offset is not None:
-        min_x += first_offset
-    if last_offset is not None:
-        max_x -= last_offset
-    ##trace("minsmax2: ", min_x, max_x, " | ", min_y, max_y)
-
-
-    # round down to nearest fitting millimeter
-    width = abs(max_x - min_x)
-    spacing_count = int(width / interval_wish)
-    actual_interval = width / spacing_count
-    board_count = spacing_count + 1
-
-    x_offset = min_x # todo: something wrong with zero here
     coords = []
-    for i in range(board_count):
-        coords.extend([((x_offset, max_y), (x_offset, min_y))])
-        x_offset += actual_interval
+    actual_interval = interval_wish
+
+    # horizontal battens is completely different
+    if horizontal:
+        if first_offset is not None:
+            min_y += first_offset
+        height = abs(max_y - min_y)
+        spacing_count = int(height / interval_wish)
+        board_count = spacing_count + 1
+
+        y_offset = min_y # todo: something wrong with zero here
+        for i in range(board_count):
+            coords.extend([((min_x, y_offset ), (max_x, y_offset ))])
+            y_offset += interval_wish
+        # last ninja
+        if abs(max_y - y_offset) > 150:
+            last_y = max_y
+        else:
+            last_y = y_offset + 100
+        coords.extend([((min_x, last_y), (max_x, last_y))])
+        trace("crds: ", coords)
+    else:
+        # vertical boards, e.g. cladding
+        if first_offset is not None:
+            min_x += first_offset
+        if last_offset is not None:
+            max_x -= last_offset
+
+        # round down to nearest fitting millimeter
+        width = abs(max_x - min_x)
+        spacing_count = int(width / interval_wish)
+        actual_interval = width / spacing_count
+        board_count = spacing_count + 1
+
+        x_offset = min_x # todo: something wrong with zero here
+        for i in range(board_count):
+            coords.extend([((x_offset, max_y), (x_offset, min_y))])
+            x_offset += actual_interval
+
     # turn array into Shapely object
     spoints = MultiLineString(coords)
     #trace_multiline(spoints)
-    #trace("msl: ", spoints)
+    trace("msl: ", spoints)
 
     wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
     #cladding_hatch = wall_polygon.intersection(spoints)
-    trace("interval actual: ", actual_interval, max_x, min_x)
+    trace("interval actual: ", actual_interval, max_x, min_x, max_y, min_y)
 
 
     pps = []
@@ -261,9 +283,9 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         source = linestr.coords
         # check isect
         coll = linestr.intersection(wall_polygon)
-        #trace("col: ", coll, source)
+        trace("col: ", coll, source)
         #try:
-        if 2 == len(coll):
+        if isinstance(coll, MultiPoint) and 2 == len(coll):
             source = LineString(coll).coords
         #except:
         #    pass
