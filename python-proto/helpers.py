@@ -225,30 +225,34 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, en
     max_x = max(p.x for p in polygon)
     max_y = max(p.y for p in polygon)
 
+    ##trace("minsmax1: ", min_x, max_x, " | ", min_y, max_y)
     if first_offset is not None:
         min_x += first_offset
     if last_offset is not None:
         max_x -= last_offset
+    ##trace("minsmax2: ", min_x, max_x, " | ", min_y, max_y)
 
 
     # round down to nearest fitting millimeter
     width = abs(max_x - min_x)
-    board_count = int(width / interval_wish)
-    actual_interval = width / board_count
+    spacing_count = int(width / interval_wish)
+    actual_interval = width / spacing_count
+    board_count = spacing_count + 1
 
-    # create exact ends, not middle lines
-    if ends_tight:
-        min_x -= actual_interval/2
-        max_x += actual_interval/2
+    x_offset = min_x
+    coords = []
+    for i in range(board_count):
+        coords.extend([((x_offset, max_y), (x_offset, min_y))])
+        x_offset += actual_interval
+    # turn array into Shapely object
+    spoints = MultiLineString(coords)
+    #trace_multiline(spoints)
+    trace("msl: ", spoints)
 
-    page = box(min_x, min_y, max_x, max_y)
-    spoints = hatchbox(page, 90, actual_interval)
     wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
     #cladding_hatch = wall_polygon.intersection(spoints)
     trace("interval actual: ", actual_interval, max_x, min_x)
 
-    #for linestr in cladding_hatch.geoms:
-    #    trace("chatch: ", linestr)
 
     pps = []
     # convert back to 3d points
@@ -257,10 +261,12 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, en
         source = linestr.coords
         # check isect
         coll = linestr.intersection(wall_polygon)
-        #trace("col: ", coll, source)
+        trace("col: ", coll, source)
+        #try:
         if 2 == len(coll):
             source = LineString(coll).coords
-
+        #except:
+        #    pass
         #trace("intersect: ", coll)
         linepts = []
         for x,y in source:
@@ -272,10 +278,19 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, en
         pps.append(linepts)
     # sort pairs by rising x coord, to get e.g. rimalaudoitus in between
     pps.sort(key=lambda tup: tup[1].x)  # sorts in place
+
     trace("pps: ", pps[0][0])
     return pps
 
-
+def trace_multiline(mls):
+    linepps = []
+    for linestr in mls.geoms:
+        linepts = []
+        for x,y in linestr.coords:
+            linepts.append(Point3(x, y, 0))
+        linepps.append(linepts)
+    #linepps.sort(key=lambda tup: tup[1].x)  # sorts in place
+    trace("mls: ", linepps)
 
 # https://gis.stackexchange.com/questions/91362/looking-for-a-simple-hatching-algorithm
 def hatchbox(rect, angle, spacing):

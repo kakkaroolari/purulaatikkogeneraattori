@@ -18,26 +18,30 @@ class Roofing( object ):
         direction = direction.Normalize(600)
         # now we should project this in actual roof plane (xyz)
         origo = face_polygon[1].Clone()
-        A = origo.GetVectorTo(high_point_actual)
-        B = origo.GetVectorTo(face_polygon[2])
-        N = Point3.Cross(A, B)
+        Y = origo.GetVectorTo(high_point_actual)
+        X = origo.GetVectorTo(face_polygon[2].Clone())
+        N = Point3.Cross(X, Y).Normalize()
+        #trace("norml: ", N)
         for point in face_polygon[1:-1]:
             # move raystas 600 mm outwards
             # TODO: This shit makes holppa==125.00 mm brake
             point.Translate(direction)
         # tilt roof plane from xy plane to actual angle
         mat = projection_matrix(origo.ToArr(), N.ToArr(), direction=[0,0,1])
-        geomPlane = TransformationPlane(origo, B, A)
-        self.transistor = Transformer(geomPlane) # geom plane is not used in convert_by_matrix
-        points_in_correct_plane = self.transistor.convert_by_matrix(face_polygon, mat)
-        trace("roof is at: ", points_in_correct_plane)
+        geomPlane = TransformationPlane(origo, X, Y)
+        transistor = Transformer(geomPlane) # geom plane is not used in convert_by_matrix
+        points_in_correct_plane = transistor.convert_by_matrix(face_polygon, mat)
+        #trace("roof is at: ", points_in_correct_plane)
         # now start creating hatch
-        local_points = self.transistor.convertToLocal(points_in_correct_plane)
+        local_points = transistor.convertToLocal(points_in_correct_plane)
+        #trace("local pts: ", local_points)
         holppa = 125.0
         one_face_point_pairs = create_hatch(local_points, 900.0, holppa, holppa, ends_tight=True)
         # convert back to global csys
-        #face_to_world = transistor.convertToGlobal(one_face_point_pairs)
-        self.point_pairs.append(one_face_point_pairs)
+        face_to_world = []
+        for pp in one_face_point_pairs:
+            face_to_world.append(transistor.convertToGlobal(pp))
+        self.point_pairs.append(face_to_world)
 
     def get_part_data(self):
         roofparts = []
@@ -46,6 +50,7 @@ class Roofing( object ):
                 #endpoint.Translate(0,0,outwards)
                 #offsetted()
                 # roof truss 5x2's
-                line_to_world = self.transistor.convertToGlobal([lowpoint, highpoint])
-                roofparts.append(create_wood_at(line_to_world[0], line_to_world[1], "50*125", Rotation.FRONT))
+                #line_to_world = self.transistor.convertToGlobal([lowpoint, highpoint])
+                #roofparts.append(create_wood_at(line_to_world[0], line_to_world[1], "50*125", Rotation.FRONT))
+                roofparts.append(create_wood_at(lowpoint, highpoint, "50*125", Rotation.FRONT))
         return roofparts

@@ -20,7 +20,7 @@ class Cladding( object ):
         transform = Transformer(coordinate_system)
         endwall = transform.convertToLocal(cladding_loop)
         # todo: hardcoded magic numbers, 127 mm should fit 22x125 (?)
-        point_pairs = create_hatch(endwall, 127.0, 50, 50)
+        point_pairs = create_hatch(endwall, 127.0, 87.50, 87.50)
         #boards = []
         previous_line = []
         for pp in point_pairs:

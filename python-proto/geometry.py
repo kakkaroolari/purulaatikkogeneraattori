@@ -236,6 +236,7 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z):
     trace("center: ", centerline)
     roofer = Roofing("roof_studs")
     roofer.do_one_roof_face(roof_polygon_1, centerline[0])
+    roofer.do_one_roof_face(roof_polygon_2, centerline[1])
     return roofer
 
 
