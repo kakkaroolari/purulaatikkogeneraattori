@@ -10,8 +10,8 @@ class Roofing( object ):
         self.point_pairs = []
 
     def do_one_roof_face(self, face_polygon, high_point_actual):
-        """ this is a geometry util func, Roofing will do the stuff.
-            order is important.
+        """ This is a geometry util func, Roofing will do the stuff.
+            order is important. This comment is utter bollocks.
         """
         # first lape (xy plane)
         direction = face_polygon[0].GetVectorTo(face_polygon[1])
@@ -23,9 +23,9 @@ class Roofing( object ):
         N = Point3.Cross(A, B)
         for point in face_polygon[1:-1]:
             # move raystas 600 mm outwards
-            trace("extrude dir: ", direction)
             # TODO: This shit makes holppa==125.00 mm brake
             point.Translate(direction)
+        # tilt roof plane from xy plane to actual angle
         mat = projection_matrix(origo.ToArr(), N.ToArr(), direction=[0,0,1])
         geomPlane = TransformationPlane(origo, B, A)
         self.transistor = Transformer(geomPlane) # geom plane is not used in convert_by_matrix
@@ -34,7 +34,7 @@ class Roofing( object ):
         # now start creating hatch
         local_points = self.transistor.convertToLocal(points_in_correct_plane)
         holppa = 125.0
-        one_face_point_pairs = create_hatch(local_points, 900.0, holppa, holppa)
+        one_face_point_pairs = create_hatch(local_points, 900.0, holppa, holppa, ends_tight=True)
         # convert back to global csys
         #face_to_world = transistor.convertToGlobal(one_face_point_pairs)
         self.point_pairs.append(one_face_point_pairs)

@@ -214,7 +214,7 @@ def ff2(grid):
 def f2(num):
     return round(num,2)
 
-def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None):
+def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ends_tight=False):
     """ polygon: bounding box
         interval_wish: create i.e. 125mm boards, extend interval for equal spacing (rimalaudoitus)
         first_offset: like 50 mm. from corner (nurkkalaudat mahtuu)
@@ -230,10 +230,16 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None):
     if last_offset is not None:
         max_x -= last_offset
 
+
     # round down to nearest fitting millimeter
     width = abs(max_x - min_x)
     board_count = int(width / interval_wish)
     actual_interval = width / board_count
+
+    # create exact ends, not middle lines
+    if ends_tight:
+        min_x -= actual_interval/2
+        max_x += actual_interval/2
 
     page = box(min_x, min_y, max_x, max_y)
     spoints = hatchbox(page, 90, actual_interval)
@@ -266,6 +272,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None):
         pps.append(linepts)
     # sort pairs by rising x coord, to get e.g. rimalaudoitus in between
     pps.sort(key=lambda tup: tup[1].x)  # sorts in place
+    trace("pps: ", pps[0][0])
     return pps
 
 
