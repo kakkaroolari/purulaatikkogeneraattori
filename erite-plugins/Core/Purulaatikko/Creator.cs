@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using EritePlugins.Common;
 using Tekla.Structures.Model.UI;
 
+
 namespace EritePlugins.Core.Purulaatikko
 {
     public class Creator
@@ -52,11 +53,14 @@ namespace EritePlugins.Core.Purulaatikko
                 foreach (JsSection partSpec in list)
                 {
                     if (null == partSpec) continue;
-                    int warn = partCounter;
-                    ForNowCreateAllBeams(partSpec.parts, ref partCounter, partSpec.section);
-                    if (warn == partCounter)
+                    using (var csys = TemporaryWorkplane.FromJsPlane(partSpec.coordinate_system))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[ERITE] No elements in section {partSpec.section}");
+                        int warn = partCounter;
+                        ForNowCreateAllBeams(partSpec.parts, ref partCounter, partSpec.section);
+                        if (warn == partCounter)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[ERITE] No elements in section {partSpec.section}");
+                        }
                     }
                     //switch (partSpec.section)
                     //{

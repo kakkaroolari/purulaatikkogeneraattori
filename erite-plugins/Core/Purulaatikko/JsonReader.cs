@@ -44,6 +44,7 @@ namespace EritePlugins.Core.Purulaatikko
         public string section { get; set; }
         public JsPart[] parts { get; set; }
         public object fitplane { get; set; }
+        public JsCoordinateSystem coordinate_system { get; set; }
     }
 
     public class JsPart
@@ -62,5 +63,12 @@ namespace EritePlugins.Core.Purulaatikko
         public float z { get; set; }
     }
 
+
+    public class JsCoordinateSystem
+    {
+        public JsPoint _origin { get; set; }
+        public JsPoint _x_axis { get; set; }
+        public JsPoint _y_axis { get; set; }
+    }
 
 }

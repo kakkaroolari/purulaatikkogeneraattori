@@ -159,7 +159,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # bit different
     roof_woody = generate_roof_studs_2(grid_x, grid_y, grid_z)
-    roof_woods = roof_woody.get_part_data()
+    #roof_woods = roof_woody.get_part_data()
 
     #trace("high: " + pprint.pformat(higher_reach))
     #trace("studs: " + pprint.pformat(wall_studs))
@@ -177,8 +177,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("cladding_test", cladding_test, 93), # todo: oikeasti class niinku stiffeners
-            named_section("roof_woods", roof_woods, 12)]
+            named_section("cladding_test", cladding_test, 93)] # todo: oikeasti class niinku stiffeners
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
@@ -188,17 +187,22 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     for stf in stiffeners + porch_stiffeners:
         combined_data.append(named_section(stf.name, stf.get_part_data()))
 
+    for roof_face in roof_woody.get_roofs_faces():
+        part_data, coord_sys = roof_face.get_part_data()
+        name = roof_face.get_name()
+        combined_data.append(named_section("roof_"+name, part_data, ts_class=12, csys=coord_sys))
+
     with open('data.json', 'w') as jsonfile:
         json.dump(combined_data, jsonfile, cls=MyEncoder, indent=2)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
 
-def named_section(name, part_list, ts_class=None, planes=None):
+def named_section(name, part_list, ts_class=None, planes=None, csys=None):
     # todo: can add assembly meta, classes etc.
     if ts_class is not None:
         for part in part_list:
             part["klass"] = ts_class
-    return { "section": name, "parts": part_list, "planes": planes }
+    return { "section": name, "parts": part_list, "planes": planes, "coordinate_system": csys }
 
 def generate_lower_reach(polygon, z_offset, mass_center=None):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset + 50.0, "Timber_Undefined", mass_center)
@@ -225,7 +229,7 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z):
         (3,1,4),
         (3,2,4)]
     roof_polygon_1 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_1)
-    trace("roof poly 1: ", roof_polygon_1)
+    #trace("roof poly 1: ", roof_polygon_1)
     roof_tuples_2 = [(3,2,4),
         (3,3,4),
         (0,3,4),
@@ -233,10 +237,10 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z):
     roof_polygon_2 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_2)
     # centerline at highest elevation
     centerline = generate_loop(grid_x, grid_y, grid_z, [(0,2,5),(3,2,5)])
-    trace("center: ", centerline)
+    trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs")
-    roofer.do_one_roof_face(roof_polygon_1, centerline[0])
-    roofer.do_one_roof_face(roof_polygon_2, centerline[1])
+    roofer.do_one_roof_face("lape_1", roof_polygon_1, centerline[0])
+    roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
     return roofer
 
 
