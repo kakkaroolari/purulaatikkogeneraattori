@@ -34,7 +34,7 @@ namespace EritePlugins.Core.Purulaatikko
             }
             catch (Exception e)
             {
-                System.Diagnostics.Debug.WriteLine($"[ERITE] Catastrophic failure: {e.Message}");
+                Tracer._trace($"[ERITE] Catastrophic failure: {e.Message}\n{e.StackTrace}");
             }
             finally
             {
@@ -112,7 +112,7 @@ namespace EritePlugins.Core.Purulaatikko
             string labelPrefix = section.section;
             Assembly assembly = null;
             int labelCounter = 0;
-            List<Part> cutSolids = CreateSolids(section.cutobjects);
+            List<Tuple<AABB, Part>> cutSolids = CreateSolids(section.cutobjects);
             Tracer._trace($"Found {cutSolids.Count} AABB's to cut with");
 
             string label = $"{labelPrefix}_{++labelCounter}";
@@ -133,9 +133,10 @@ namespace EritePlugins.Core.Purulaatikko
                             assembly.Add(beam);
                             assembly.Modify();
                         }
+
                         beam.SetLabel(label);
+                        TryApplyCuts(beam, cutSolids);
                     }
-                    TryApplyCuts(beam, cutSolids);
                 }
                 catch (Exception e)
                 {
@@ -143,11 +144,16 @@ namespace EritePlugins.Core.Purulaatikko
                     throw;
                 }
             }
+            // "finally"
+            foreach (var cutItem in cutSolids)
+            {
+                cutItem.Item2.Delete();
+            }
         }
 
-        private List<Part> CreateSolids(JsPoint[][] sectionCutobjectsDefs)
+        private List<Tuple<AABB, Part>> CreateSolids(JsPoint[][] sectionCutobjectsDefs)
         {
-            var aabbs = new List<Part>();
+            var aabbs = new List<Tuple<AABB, Part>>();
             if (null == sectionCutobjectsDefs) return aabbs;
 
             foreach (var pointPair in sectionCutobjectsDefs)
@@ -167,7 +173,7 @@ namespace EritePlugins.Core.Purulaatikko
                     var profileString = $"{width}*{height}";
                     var startPoint = new Point(minx, midy, 0);
                     var endPoint = new Point(maxx, midy, 0);
-                    Tracer._trace($"Cut solid: {startPoint} -> {endPoint}, wid: {width}, hei: {height}.");
+                    Tracer._trace($"Boolean solid: {startPoint} -> {endPoint}, wid: {width}, hei: {height}.");
                     var operativePart = new Beam
                     {
                         StartPoint = startPoint,
@@ -181,10 +187,12 @@ namespace EritePlugins.Core.Purulaatikko
                         Profile = new Profile
                         {
                             ProfileString = profileString
-                        }
+                        },
+                        Class = BooleanPart.BooleanOperativeClassName
                     };
                     operativePart.Insert();
-                    aabbs.Add(operativePart);
+                    var aabb = new AABB(lowleft, highright);
+                    aabbs.Add(Tuple.Create<AABB, Part>(aabb, operativePart));
                 }
                 else
                 {
@@ -195,8 +203,27 @@ namespace EritePlugins.Core.Purulaatikko
             return aabbs;
         }
 
-        private void TryApplyCuts(Part part, List<Part> cutSolids)
+        private void TryApplyCuts(Part part, List<Tuple<AABB, Part>> cutSolids)
         {
+            if ( null == cutSolids ) return;
+
+            var partBox = part.GetAABB();
+            // check collision
+            foreach (var cutObjects in cutSolids)
+            {
+                var aabb = cutObjects.Item1;
+                var operativePart = cutObjects.Item2;
+                if (!GeometryUtils.testAABBAABB(aabb, partBox)) continue;
+
+                BooleanPart Beam = new BooleanPart();
+                Beam.Father = part;
+                Beam.SetOperativePart(operativePart);
+                if (!Beam.Insert())
+                {
+                    Tracer._trace("Insert failed!");
+                }
+                Tracer._trace($"Cut solid: {part.Name}.");
+            }
 
         }
 
