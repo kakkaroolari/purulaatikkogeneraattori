@@ -242,10 +242,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
             coords.extend([((min_x, y_offset ), (max_x, y_offset ))])
             y_offset += interval_wish
         # last ninja
-        if abs(max_y - y_offset) > 150:
-            last_y = max_y
-        else:
-            last_y = y_offset + 100
+        last_y = max_y
         coords.extend([((min_x, last_y), (max_x, last_y))])
         trace("crds: ", coords)
     else:
