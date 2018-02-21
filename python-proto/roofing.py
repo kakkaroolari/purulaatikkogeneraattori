@@ -70,7 +70,7 @@ class Roofing( object ):
                 local_roof_poly[ind].Translate(expand)
                 local_roof_poly[ind+1].Translate(expand)
             ind += 1
-        one_face_batten_pairs = create_hatch(local_roof_poly, 350.0, first_offset=50, horizontal=True)
+        one_face_batten_pairs = create_hatch(local_roof_poly, 350.0, first_offset=50-22, horizontal=True)
         # add battens
         for bb in one_face_batten_pairs:
             for point in bb:
@@ -80,23 +80,32 @@ class Roofing( object ):
             bb2 = bb
             #trace(bb2[0], bb2[1], "32*100")
             roof_data.add_part_data(bb2[0], bb2[1], "32*100", Rotation.TOP)
-        decking_profile_half = 20 # todo: educated guess at this juncture
-        decking_data = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32 + decking_profile_half)
-        roof_data.add_deck_data(decking_data, "S18-92W-1100-04", None)
+        #decking_profile_half = 20 # todo: educated guess at this juncture
+        decking_data = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
+        roof_data.set_deck_data(decking_data)
         self.roof_decs.append(roof_data)
 
     def _generate_roof_deck(self, polygon, z_offset):
         contour_points = []
-        for node in polygon:
-            # kinda cloning
-            clonepoint = node.Clone()
-            clonepoint.Translate(0, 0, z_offset)
-            contour_points.append(clonepoint)
-        closeloop = polygon[0].Clone()
-        closeloop.Translate(0, 0, z_offset)
-        contour_points.append(closeloop) # close it?
+        profile_height = 18.40
+        z_offset += profile_height/2
+        trace("decking z-off: ", z_offset)
+        # extend 40 mm over
+        extend_down = -(40+22+22)
+        for node in polygon[1:-1]:
+            contour_points.append(node.CopyLinear(0, extend_down, z_offset))
+        # end points towards centerline
+        extend_up = 50
+        contour_points = [polygon[0].CopyLinear(0, extend_up, z_offset)] + \
+                         contour_points + \
+                         [polygon[-1].CopyLinear(0, extend_up, z_offset)]
         # todo: closedloop or not..
-        return contour_points
+        profile_width = 1100 # this is important
+        steel_point_pairs = create_hatch(contour_points, profile_width, profile_width/2, exact=True)
+        decking_data = []
+        for spp in steel_point_pairs:
+            decking_data.append((spp, "S18-92W-1100-04", None,))
+        return decking_data
 
     def get_roofs_faces(self):
         return self.roof_decs
@@ -113,8 +122,8 @@ class _RoofDeck(object):
     def add_part_data(self, lowpoint, highpoint, profile, rotation):
         self.roof_part_data.append((lowpoint.Clone(), highpoint.Clone(), profile, rotation,))
 
-    def add_deck_data(self, contour_points, profile, rotation):
-        self.roof_deck_data.append((contour_points, profile, rotation,))
+    def set_deck_data(self, deck_data):
+        self.roof_deck_data = deck_data
 
     def get_part_data(self):
         roofparts = []
@@ -124,6 +133,7 @@ class _RoofDeck(object):
         # add steel
         for points, profile, rotation in self.roof_deck_data:
             roofparts.append(get_part_data(profile, rotation, points, "S235JR", 3))
+        # todo: add cut aabb's
         return roofparts, self.transformation_plane
 
     def get_name(self):

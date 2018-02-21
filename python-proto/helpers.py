@@ -215,7 +215,7 @@ def ff2(grid):
 def f2(num):
     return round(num,2)
 
-def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, horizontal=False):
+def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, horizontal=False, exact=False):
     """ polygon: bounding box
         interval_wish: create i.e. 125mm boards, extend interval for equal spacing (rimalaudoitus)
         first_offset: like 50 mm. from corner (nurkkalaudat mahtuu)
@@ -260,6 +260,8 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         spacing_count = int(width / interval_wish)
         actual_interval = width / spacing_count
         board_count = spacing_count + 1
+        if exact:
+            actual_interval = interval_wish
 
         x_offset = min_x # todo: something wrong with zero here
         for i in range(board_count):
