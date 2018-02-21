@@ -17,7 +17,8 @@ from shapely.geometry import (box,
                               Point,
                               LineString,
                               LinearRing,
-                              MultiPoint)
+                              MultiPoint,
+                              Polygon)
 from shapely.affinity import rotate
 from shapely import speedups
 from math import sqrt
@@ -215,16 +216,37 @@ def ff2(grid):
 def f2(num):
     return round(num,2)
 
+def get_differences(polygon):
+    min_x, min_y, max_x, max_y = bounding_box(polygon)
+    page = box(min_x, min_y, max_x, max_y)
+    trace("page: ", page)
+    ring = LinearRing([(p.x,p.y) for p in polygon])
+    trace("ring: ", ring)
+    wall_polygon = Polygon(ring.coords)
+    trace("polugon: ", wall_polygon)
+    diffs = page.difference(wall_polygon)
+    trace("diffs: ", diffs)
+    aabbs = []
+    for polygons in diffs.geoms:
+        bound_box = polygons.bounds
+        minx, miny, maxx, maxy = bound_box
+        aabbs.append([Point3(minx, miny, -200), Point3(maxx, maxy, 200)])
+    return aabbs
+
+def bounding_box(polygon):
+    min_x = min(p.x for p in polygon)
+    min_y = min(p.y for p in polygon)
+    max_x = max(p.x for p in polygon)
+    max_y = max(p.y for p in polygon)
+    return min_x, min_y, max_x, max_y
+
 def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, horizontal=False, exact=False):
     """ polygon: bounding box
         interval_wish: create i.e. 125mm boards, extend interval for equal spacing (rimalaudoitus)
         first_offset: like 50 mm. from corner (nurkkalaudat mahtuu)
     """
     # todo actual polygon instead of a 2d bounding box? if needed
-    min_x = min(p.x for p in polygon)
-    min_y = min(p.y for p in polygon)
-    max_x = max(p.x for p in polygon)
-    max_y = max(p.y for p in polygon)
+    min_x, min_y, max_x, max_y = bounding_box(polygon)
 
     coords = []
     actual_interval = interval_wish
@@ -282,7 +304,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         source = linestr.coords
         # check isect
         coll = linestr.intersection(wall_polygon)
-        trace("col: ", coll, source)
+        #trace("col: ", coll, source)
         #try:
         if isinstance(coll, MultiPoint) and 2 == len(coll):
             source = LineString(coll).coords

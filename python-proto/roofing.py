@@ -4,6 +4,8 @@ from point import Point3
 from helpers import *
 from transformations import (projection_matrix,
                              angle_between_vectors)
+#from shapely.geometry import (box,
+#                              LinearRing)
 
 class Roofing( object ):
     def __init__( self, section_name):
@@ -81,8 +83,8 @@ class Roofing( object ):
             #trace(bb2[0], bb2[1], "32*100")
             roof_data.add_part_data(bb2[0], bb2[1], "32*100", Rotation.TOP)
         #decking_profile_half = 20 # todo: educated guess at this juncture
-        decking_data = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
-        roof_data.set_deck_data(decking_data)
+        decking_data, cut_data = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
+        roof_data.set_deck_data(decking_data, cut_data)
         self.roof_decs.append(roof_data)
 
     def _generate_roof_deck(self, polygon, z_offset):
@@ -97,7 +99,7 @@ class Roofing( object ):
         extend_left_right_abs = profile_width/2
         # then battens
         ind = 0
-        local_roof_poly = list(polygon) # copy
+        local_roof_poly = [p.Clone() for p in polygon] #.copy()
         for point in local_roof_poly[:-1]:
             toNext = point.GetVectorTo(local_roof_poly[ind+1])
             toNext.z = 0 # level out to xy-plane
@@ -123,7 +125,16 @@ class Roofing( object ):
             for point in spp:
                 point.Translate(0, 0, extend_z)
             decking_data.append((spp, "S18-92W-1100-04", None,))
-        return decking_data
+        # then cutting
+        cuts = get_differences(polygon)
+        for aabb in cuts:
+            for point in aabb:
+                point.Translate(0, extend_down, 0)
+            aabb[0].Translate(0, -50, 0)
+        #min_x, min_y, max_x, max_y = bounding_box(polygon)
+        #page = box(min_x, min_y, max_x, max_y)
+        #wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
+        return decking_data, cuts
 
     def get_roofs_faces(self):
         return self.roof_decs
@@ -136,23 +147,29 @@ class _RoofDeck(object):
         self.transformation_plane = plane
         self.roof_part_data = []
         self.roof_deck_data = []
+        self.roof_cut_data = []
 
     def add_part_data(self, lowpoint, highpoint, profile, rotation):
         self.roof_part_data.append((lowpoint.Clone(), highpoint.Clone(), profile, rotation,))
 
-    def set_deck_data(self, deck_data):
+    def set_deck_data(self, deck_data, cut_data):
         self.roof_deck_data = deck_data
+        self.roof_cut_data = cut_data
 
-    def get_part_data(self):
+    def get_woods_data(self):
         roofparts = []
         #for pp in self.roof_stud_coords:
         for lowpoint, highpoint, profile, rotation in self.roof_part_data:
             roofparts.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         # add steel
+        return roofparts, self.transformation_plane
+
+    def get_steel_data(self):
+        roofparts = []
         for points, profile, rotation in self.roof_deck_data:
             roofparts.append(get_part_data(profile, rotation, points, "S235JR", 3))
         # todo: add cut aabb's
-        return roofparts, self.transformation_plane
+        return roofparts, self.transformation_plane, self.roof_cut_data
 
     def get_name(self):
         return self.name

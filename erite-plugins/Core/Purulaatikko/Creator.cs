@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using Tekla.Structures.Model;
 using Tekla.Structures.Geometry3d;
 using System.Linq;
 using System.Windows.Forms;
 using EritePlugins.Common;
+using SwecoToolbar;
 using Tekla.Structures.Model.UI;
 
 
@@ -56,7 +58,7 @@ namespace EritePlugins.Core.Purulaatikko
                     using (var csys = TemporaryWorkplane.FromJsPlane(partSpec.coordinate_system))
                     {
                         int warn = partCounter;
-                        ForNowCreateAllBeams(partSpec.parts, ref partCounter, partSpec.section);
+                        ForNowCreateAllBeams(partSpec, ref partCounter);
                         if (warn == partCounter)
                         {
                             System.Diagnostics.Debug.WriteLine($"[ERITE] No elements in section {partSpec.section}");
@@ -104,10 +106,15 @@ namespace EritePlugins.Core.Purulaatikko
         //    ForNowCreateAllBeams(data, ref counter, "Stud");
         //}
 
-        private void ForNowCreateAllBeams(JsPart[] data, ref int counter, string labelPrefix)
+        private void ForNowCreateAllBeams(JsSection section, ref int counter)
         {
+            JsPart[] data = section.parts;
+            string labelPrefix = section.section;
             Assembly assembly = null;
             int labelCounter = 0;
+            List<Part> cutSolids = CreateSolids(section.cutobjects);
+            Tracer._trace($"Found {cutSolids.Count} AABB's to cut with");
+
             string label = $"{labelPrefix}_{++labelCounter}";
             foreach (var beamSpec in data)
             {
@@ -128,13 +135,69 @@ namespace EritePlugins.Core.Purulaatikko
                         }
                         beam.SetLabel(label);
                     }
+                    TryApplyCuts(beam, cutSolids);
                 }
                 catch (Exception e)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ERITE] Part failure: {label}");
+                    Tracer._trace($"Part failure: {label}");
                     throw;
                 }
             }
+        }
+
+        private List<Part> CreateSolids(JsPoint[][] sectionCutobjectsDefs)
+        {
+            var aabbs = new List<Part>();
+            if (null == sectionCutobjectsDefs) return aabbs;
+
+            foreach (var pointPair in sectionCutobjectsDefs)
+            {
+                if (2 == pointPair.Length)
+                {
+                    var lowleft = pointPair[0].GetPoint();
+                    var highright = pointPair[1].GetPoint();
+                    var midy = pointPair.Select(p => p.GetPoint()).Average(p => p.Y);
+                    //var midZ = pointPair.Select(p => p.GetPoint()).Average(p => p.Z);
+                    var maxx = highright.X;
+                    var minx = lowleft.X;
+                    var maxZ = highright.Z;
+                    var minZ = lowleft.Z;
+                    int height = Convert.ToInt32(maxZ - minZ);
+                    int width = Convert.ToInt32(highright.Y - lowleft.Y);
+                    var profileString = $"{width}*{height}";
+                    var startPoint = new Point(minx, midy, 0);
+                    var endPoint = new Point(maxx, midy, 0);
+                    Tracer._trace($"Cut solid: {startPoint} -> {endPoint}, wid: {width}, hei: {height}.");
+                    var operativePart = new Beam
+                    {
+                        StartPoint = startPoint,
+                        EndPoint = endPoint,
+                        Position = new Position
+                        {
+                            Depth = Position.DepthEnum.MIDDLE,
+                            Plane = Position.PlaneEnum.MIDDLE,
+                            Rotation = Position.RotationEnum.FRONT
+                        },
+                        Profile = new Profile
+                        {
+                            ProfileString = profileString
+                        }
+                    };
+                    operativePart.Insert();
+                    aabbs.Add(operativePart);
+                }
+                else
+                {
+                    Tracer._trace("Strange cut solid, unable to comply.");
+                }
+            }
+
+            return aabbs;
+        }
+
+        private void TryApplyCuts(Part part, List<Part> cutSolids)
+        {
+
         }
 
         private Part CreateBeamOrPoly(JsPart beamSpec)

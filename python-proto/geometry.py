@@ -188,21 +188,26 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         combined_data.append(named_section(stf.name, stf.get_part_data()))
 
     for roof_face in roof_woody.get_roofs_faces():
-        part_data, coord_sys = roof_face.get_part_data()
+        # woods
+        part_data, coord_sys = roof_face.get_woods_data()
         name = roof_face.get_name()
-        combined_data.append(named_section("roof_"+name, part_data, ts_class=12, csys=coord_sys))
+        combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys))
+        # steels
+        geom_data, coord_sys, cut_aabbs = roof_face.get_steel_data()
+        combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=cut_aabbs))
+
 
     with open('data.json', 'w') as jsonfile:
         json.dump(combined_data, jsonfile, cls=MyEncoder, indent=2)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
 
-def named_section(name, part_list, ts_class=None, planes=None, csys=None):
+def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids=None):
     # todo: can add assembly meta, classes etc.
     if ts_class is not None:
         for part in part_list:
             part["klass"] = ts_class
-    return { "section": name, "parts": part_list, "planes": planes, "coordinate_system": csys }
+    return { "section": name, "parts": part_list, "planes": planes, "coordinate_system": csys, "cutobjects": solids }
 
 def generate_lower_reach(polygon, z_offset, mass_center=None):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset + 50.0, "Timber_Undefined", mass_center)
@@ -240,7 +245,7 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z):
     trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs")
     roofer.do_one_roof_face("lape_1", roof_polygon_1, centerline[0])
-    roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
+    #roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
     return roofer
 
 
