@@ -193,8 +193,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         name = roof_face.get_name()
         combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys))
         # steels
-        geom_data, coord_sys, cut_aabbs = roof_face.get_steel_data()
-        combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=cut_aabbs))
+        geom_data, coord_sys, cut_aabbs, cut_planes = roof_face.get_steel_data()
+        combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=cut_aabbs, planes=cut_planes))
 
 
     with open('data.json', 'w') as jsonfile:

@@ -216,6 +216,23 @@ def ff2(grid):
 def f2(num):
     return round(num,2)
 
+def create_cut_aabb(point_pair):
+    return {
+        "min_point": point_pair[0], 
+        "max_point": point_pair[1]
+    }
+
+def create_cut_plane(point1, point2, normal):
+    aa = point1.GetVectorTo(point2)
+    bb = Point3.Cross(aa, normal)
+    point3 = point1.CopyLinear(bb)
+    trace("xyzabc: ", point1, point2, point3)
+    return {
+        "point1": point1,
+        "point2": point2,
+        "point3": point3,
+    }
+
 def get_differences(polygon):
     min_x, min_y, max_x, max_y = bounding_box(polygon)
     page = box(min_x, min_y, max_x, max_y)

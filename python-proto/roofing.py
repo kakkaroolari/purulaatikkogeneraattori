@@ -83,8 +83,8 @@ class Roofing( object ):
             #trace(bb2[0], bb2[1], "32*100")
             roof_data.add_part_data(bb2[0], bb2[1], "32*100", Rotation.TOP)
         #decking_profile_half = 20 # todo: educated guess at this juncture
-        decking_data, cut_data = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
-        roof_data.set_deck_data(decking_data, cut_data)
+        decking_data, cut_objs, cut_planes = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
+        roof_data.set_deck_data(decking_data, cut_objs, cut_planes)
         self.roof_decs.append(roof_data)
 
     def _generate_roof_deck(self, polygon, z_offset):
@@ -127,14 +127,18 @@ class Roofing( object ):
             decking_data.append((spp, "S18-92W-1100-04", None,))
         # then cutting
         cuts = get_differences(polygon)
+        cutAABBs = []
         for aabb in cuts:
             for point in aabb:
                 point.Translate(0, extend_down, 0)
             aabb[0].Translate(0, -50, 0)
+            cutAABBs.append(create_cut_aabb(aabb))
+        # last cut is plane in the far end
+        cutPlane = create_cut_plane(polygon[-1], polygon[-2], Point3(1,0,0))
         #min_x, min_y, max_x, max_y = bounding_box(polygon)
         #page = box(min_x, min_y, max_x, max_y)
         #wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
-        return decking_data, cuts
+        return decking_data, cutAABBs, [cutPlane]
 
     def get_roofs_faces(self):
         return self.roof_decs
@@ -152,9 +156,10 @@ class _RoofDeck(object):
     def add_part_data(self, lowpoint, highpoint, profile, rotation):
         self.roof_part_data.append((lowpoint.Clone(), highpoint.Clone(), profile, rotation,))
 
-    def set_deck_data(self, deck_data, cut_data):
+    def set_deck_data(self, deck_data, cut_data, cut_planes):
         self.roof_deck_data = deck_data
         self.roof_cut_data = cut_data
+        self.roof_cut_planes = cut_planes
 
     def get_woods_data(self):
         roofparts = []
@@ -169,7 +174,7 @@ class _RoofDeck(object):
         for points, profile, rotation in self.roof_deck_data:
             roofparts.append(get_part_data(profile, rotation, points, "S235JR", 3))
         # todo: add cut aabb's
-        return roofparts, self.transformation_plane, self.roof_cut_data
+        return roofparts, self.transformation_plane, self.roof_cut_data, self.roof_cut_planes
 
     def get_name(self):
         return self.name

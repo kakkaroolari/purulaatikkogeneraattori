@@ -43,9 +43,9 @@ namespace EritePlugins.Core.Purulaatikko
     {
         public string section { get; set; }
         public JsPart[] parts { get; set; }
-        public object fitplane { get; set; }
+        public JsPlane[] planes { get; set; }
         public JsCoordinateSystem coordinate_system { get; set; }
-        public JsPoint[][] cutobjects { get; set; }
+        public JsCutobject[] cutobjects { get; set; }
     }
 
     public class JsPart
@@ -70,5 +70,18 @@ namespace EritePlugins.Core.Purulaatikko
         public JsPoint _x_axis { get; set; }
         public JsPoint _y_axis { get; set; }
     }
-    
+
+    public class JsPlane
+    {
+        public JsPoint origin { get; set; }
+        public JsPoint normal { get; set; }
+    }
+
+    public class JsCutobject
+    {
+        public JsPoint min_point { get; set; }
+        public JsPoint max_point { get; set; }
+    }
+
+
 }
