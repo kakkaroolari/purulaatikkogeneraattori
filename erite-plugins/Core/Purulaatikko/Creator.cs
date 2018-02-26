@@ -151,18 +151,18 @@ namespace EritePlugins.Core.Purulaatikko
             }
         }
 
-        private List<Tuple<AABB, Part>> CreateSolids(JsPoint[][] sectionCutobjectsDefs)
+        private List<Tuple<AABB, Part>> CreateSolids(JsCutobject[] sectionCutobjectsDefs)
         {
             var aabbs = new List<Tuple<AABB, Part>>();
             if (null == sectionCutobjectsDefs) return aabbs;
 
             foreach (var pointPair in sectionCutobjectsDefs)
             {
-                if (2 == pointPair.Length)
-                {
-                    var lowleft = pointPair[0].GetPoint();
-                    var highright = pointPair[1].GetPoint();
-                    var midy = pointPair.Select(p => p.GetPoint()).Average(p => p.Y);
+                //if (2 == pointPair.Length)
+                //{
+                    var lowleft = pointPair.min_point.GetPoint();
+                var highright = pointPair.max_point.GetPoint();
+                    var midy = (highright.Y - lowleft.Y) / 2;
                     //var midZ = pointPair.Select(p => p.GetPoint()).Average(p => p.Z);
                     var maxx = highright.X;
                     var minx = lowleft.X;
@@ -193,11 +193,11 @@ namespace EritePlugins.Core.Purulaatikko
                     operativePart.Insert();
                     var aabb = new AABB(lowleft, highright);
                     aabbs.Add(Tuple.Create<AABB, Part>(aabb, operativePart));
-                }
-                else
-                {
-                    Tracer._trace("Strange cut solid, unable to comply.");
-                }
+                //}
+                //else
+                //{
+                //    Tracer._trace("Strange cut solid, unable to comply.");
+                //}
             }
 
             return aabbs;

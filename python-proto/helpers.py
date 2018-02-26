@@ -8,7 +8,7 @@ from transformations import (translation_matrix,
 from point import Point3
 import numpy as np
 #import bpy
-from mathutils import Vector
+#from mathutils import Vector
 from math import degrees
 
 #import math3d as m3d
