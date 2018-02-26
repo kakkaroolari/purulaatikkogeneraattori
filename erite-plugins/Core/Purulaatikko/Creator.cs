@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using EritePlugins.Common;
 using SwecoToolbar;
 using Tekla.Structures.Model.UI;
+//using ChainSaw;
 
 
 namespace EritePlugins.Core.Purulaatikko
@@ -113,6 +114,7 @@ namespace EritePlugins.Core.Purulaatikko
             Assembly assembly = null;
             int labelCounter = 0;
             List<Tuple<AABB, Part>> cutSolids = CreateSolids(section.cutobjects);
+            List<Tuple<Tuple<Point, Point, Point>, Plane>> cutPlanes = CreatePlanes(section.planes);
             Tracer._trace($"Found {cutSolids.Count} AABB's to cut with");
 
             string label = $"{labelPrefix}_{++labelCounter}";
@@ -136,6 +138,7 @@ namespace EritePlugins.Core.Purulaatikko
 
                         beam.SetLabel(label);
                         TryApplyCuts(beam, cutSolids);
+                        TryApplyCuts(beam, cutPlanes);
                     }
                 }
                 catch (Exception e)
@@ -151,6 +154,36 @@ namespace EritePlugins.Core.Purulaatikko
             }
         }
 
+        private List<Tuple<Tuple<Point, Point, Point>, Plane>> CreatePlanes(JsPlane[] planeDefs)
+        {
+            var planes = new List<Tuple<Tuple<Point, Point, Point>, Plane>>();
+            if (null == planeDefs) return planes;
+
+            foreach (var planeDef in planeDefs)
+            {
+                var origin = planeDef.point1.GetPoint();
+                var axisX = new Vector(planeDef.point3.GetPoint() - planeDef.point1.GetPoint());
+                var axisY = new Vector(planeDef.point2.GetPoint() - planeDef.point1.GetPoint());
+                var plane = new Plane
+                {
+                    Origin = origin,
+                    AxisX = axisX,
+                    AxisY = axisY
+                };
+                /*
+                var normal = axisX.Cross(axisY);
+                var geomPlane = new GeometricPlane(origin, normal);
+                */
+                var p1 = planeDef.point1.GetPoint();
+                var p2 = planeDef.point2.GetPoint();
+                var p3 = planeDef.point3.GetPoint();
+                var points = Tuple.Create(p1, p2, p3);
+                planes.Add(Tuple.Create(points, plane));
+            }
+
+            return planes;
+        }
+
         private List<Tuple<AABB, Part>> CreateSolids(JsCutobject[] sectionCutobjectsDefs)
         {
             var aabbs = new List<Tuple<AABB, Part>>();
@@ -162,7 +195,9 @@ namespace EritePlugins.Core.Purulaatikko
                 //{
                     var lowleft = pointPair.min_point.GetPoint();
                 var highright = pointPair.max_point.GetPoint();
-                    var midy = (highright.Y - lowleft.Y) / 2;
+                var pointList = new List<Point> { lowleft, highright };
+                var midy = pointList.Average(p => p.Y);
+                //var midy = (highright.Y - lowleft.Y) / 2;
                     //var midZ = pointPair.Select(p => p.GetPoint()).Average(p => p.Z);
                     var maxx = highright.X;
                     var minx = lowleft.X;
@@ -219,6 +254,31 @@ namespace EritePlugins.Core.Purulaatikko
                 Beam.Father = part;
                 Beam.SetOperativePart(operativePart);
                 if (!Beam.Insert())
+                {
+                    Tracer._trace("Insert failed!");
+                }
+                Tracer._trace($"Cut solid: {part.Name}.");
+            }
+
+        }
+
+        private void TryApplyCuts(Part part, List<Tuple<Tuple<Point, Point, Point>, Plane>> cutPlanes)
+        {
+            if (null == cutPlanes) return;
+
+            var partBox = part.GetSolid();
+            // check collision
+            foreach (var cutPlaneDef in cutPlanes)
+            {
+                var operativePart = cutPlaneDef.Item2;
+                var pps = cutPlaneDef.Item1;
+                var intersection = partBox.IntersectAllFaces(pps.Item1, pps.Item2, pps.Item3);
+                if (intersection.IsNullOrEmpty()) continue;
+
+                var cutPlane = new CutPlane();
+                cutPlane.Father = part;
+                cutPlane.Plane = operativePart;
+                if (!cutPlane.Insert())
                 {
                     Tracer._trace("Insert failed!");
                 }

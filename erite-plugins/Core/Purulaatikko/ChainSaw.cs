@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,6 +25,19 @@ namespace EritePlugins.Core.Purulaatikko
             };
             //}
             return ts;
+        }
+
+        // Not exactly model helper but frak it..
+        public static bool IsNullOrEmpty(this IEnumerator source)
+        {
+            if (source != null)
+            {
+                while (source.MoveNext())
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }
