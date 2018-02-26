@@ -185,7 +185,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     
 
     for stf in stiffeners + porch_stiffeners:
-        combined_data.append(named_section(stf.name, stf.get_part_data()))
+        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes()))
 
     for roof_face in roof_woody.get_roofs_faces():
         # woods

@@ -55,14 +55,16 @@ class Stiffener( object ):
             roofangle = None
         C = B.CopyLinear(0,0,get_ceiling(startpoint, B, height, length, roofangle))
         D = A.CopyLinear(0,0,height)
+        E = endpoint.Clone()
+        F = endpoint.CopyLinear(0,0,height)
         #trace("ABCD: ", A, B, C, D)
         # fit vectors (to export json)
-        self.planes.append((A.Clone(), A.GetVectorTo(B)),)
-        self.planes.append((A.Clone(), A.GetVectorTo(D)),)
+        self.planes.append(create_cut_plane(A.Clone(), B.Clone(), D.GetVectorTo(A)))
+        self.planes.append(create_cut_plane(A.Clone(), D.Clone(), B.GetVectorTo(A)))
         if extremely_short_wall:
-            self.planes.append((B.Clone(), B.GetVectorTo(A)),)
+            self.planes.append(create_cut_plane(B.Clone(), C.Clone(), A.GetVectorTo(B)))
         else:
-            self.planes.append((endpoint.Clone(), endpoint.GetVectorTo(B)),)
+            self.planes.append(create_cut_plane(E.Clone(), F.Clone(), A.GetVectorTo(B)))
         # helper vinolaudat
         gridfull = math.sqrt(2)*100.0
         gridhalf = gridfull/2
@@ -126,10 +128,7 @@ class Stiffener( object ):
             end = aa.CopyLinear(stiffener_dir)
             stiffener_lines.append((beg.Clone(), end.Clone()),)
             aa.Translate(0,0, -gridfull)
-        # todo precut othor said
-        E = endpoint.Clone()
-        F = endpoint.CopyLinear(0,0,height)
-        #towards_down = Point(0,0,-100)
+        # precut othor said
         for N,M in stiffener_lines:
             # 1. cut BE -> nm
             beg = N.Clone()
