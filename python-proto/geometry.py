@@ -85,10 +85,6 @@ def is_short_side(p1, p2):
 def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
     pairs = [(0,1),
-        #(1,1),
-        #(1,0),
-        #(2,0),
-        #(2,1),
         (3,1),
         (3,3),
         (0,3),
@@ -108,6 +104,15 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         (3,3)]
     high_polygon1 = generate_loop(grid_x, grid_y, None, high_pairs1)
     high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
+
+    # create window aabb's, possibly to be used all over the place
+    line1 = generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (3,1,1)])
+    defs1 = {5920: "14*12"}
+    line2 = generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,3,1)])
+    defs2 = {2650: "11*12"}
+    line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
+    defs3 = {2100: "14*12", 6290: "11*12"}
+    window_cuts = create_window_boxes([(line1, defs1),(line2, defs2),(line3, defs3)])
 
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
@@ -177,7 +182,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("cladding_test", cladding_test, 93)] # todo: oikeasti class niinku stiffeners
+            named_section("cladding_test", cladding_test, 93, solids=window_cuts)] # todo: oikeasti class niinku stiffeners
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
@@ -185,7 +190,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     
 
     for stf in stiffeners + porch_stiffeners:
-        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes()))
+        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes(), solids=window_cuts))
 
     for roof_face in roof_woody.get_roofs_faces():
         # woods
@@ -222,6 +227,33 @@ def offset_porch_woods_outwards(porch_polygon, mass_center):
         outwards_for_stiffeners = Point3(0, -22, 0)
     porch_polygon[0].Translate(outwards_for_stiffeners)
     porch_polygon[-1].Translate(outwards_for_stiffeners)
+
+def create_window_boxes(windows):
+    # in: wall plane in 3d
+    #     + vector wall-normal(?)
+    #     + distance from start
+    #     + window size
+    aabbs = []
+    for wall_line in windows:
+        line, defs = wall_line
+        # create 2d coord sys
+        Z = line[0].CopyLinear(0,0,2000) # wall height irrelevant
+        A = line[0].GetVectorTo(line[1])
+        B = line[0].GetVectorTo(Z)
+        rotation = direction_to_rotation(Point3.Cross(A, B))
+        coordinate_system = TransformationPlane(line[0], A, B)
+        transform = Transformer(coordinate_system)
+        wall_local = transform.convertToLocal(line)
+        # create aabb's
+        for distance, holesize in defs.items():
+            dx = parse_width(holesize)*100 # "wrong way"
+            dy = parse_width(holesize)*100 # module
+            xc = distance
+            low = Point3(xc, 1160, -200)
+            high = low.CopyLinear(dx, dy, 400)
+            in_world = transform.convertToGlobal([low, high])
+            aabbs.append(create_cut_aabb(in_world))
+    return aabbs
 
 def generate_roof_studs_2(grid_x, grid_y, grid_z):
     # xy plane
