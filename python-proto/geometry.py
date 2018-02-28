@@ -279,7 +279,7 @@ def create_chimneypipe(section_cut, x, y, profile, roofangle):
     endPoint = startPoint.CopyLinear(0, 0, main_elevation) # regs. 800 mm over
     cutting_aabb = create_cut_aabb([Point3(x,y,0), Point3(x+pro_x, y+pro_y, main_elevation)])
     concrete_parts = []
-    #concrete_parts.append(get_part_data(profile, None, [startPoint, endPoint], "Concrete_Undefined"))
+    concrete_parts.append(get_part_data(profile, None, [startPoint, endPoint], "Concrete_Undefined"))
     # hifistely
     joined = endPoint.Clone()
     top_elev = joined.CopyLinear(0, 0, 85) # module
