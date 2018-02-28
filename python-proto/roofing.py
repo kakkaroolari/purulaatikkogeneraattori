@@ -8,8 +8,9 @@ from transformations import (projection_matrix,
 #                              LinearRing)
 
 class Roofing( object ):
-    def __init__( self, section_name):
+    def __init__( self, section_name, chimney_spec):
         self.name = section_name
+        self.chimney_world = chimney_spec
         self.roof_decs = []
 
     def do_one_roof_face(self, section_name, face_polygon, high_point_actual):
@@ -84,7 +85,21 @@ class Roofing( object ):
             roof_data.add_part_data(bb2[0], bb2[1], "32*100", Rotation.TOP)
         #decking_profile_half = 20 # todo: educated guess at this juncture
         decking_data, cut_objs, cut_planes = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
-        roof_data.set_deck_data(decking_data, cut_objs, cut_planes)
+        # add chimney to cut solids
+        chimney = get_bounding_lines(self.chimney_world, transistor)
+        cut_corners_local = []
+        local_chimney = None
+        for corner_line in chimney:
+            # isect level 62.5 + 22 + 32 ~
+            isect = isect_line_plane_v3(corner_line[0].ToArr(), corner_line[1].ToArr(), [0,0,100])
+            if isect is not None:
+                cut_corners_local.append(Point3(isect[0], isect[1], 0))
+        if 4 == len(cut_corners_local):
+            cut_corners_local[0].z = -200
+            cut_corners_local[-1].z = 200
+            local_chimney = create_cut_aabb(cut_corners_local)
+
+        roof_data.set_deck_data(decking_data, cut_objs, cut_planes, local_chimney)
         self.roof_decs.append(roof_data)
 
     def _generate_roof_deck(self, polygon, z_offset):
@@ -156,10 +171,11 @@ class _RoofDeck(object):
     def add_part_data(self, lowpoint, highpoint, profile, rotation):
         self.roof_part_data.append((lowpoint.Clone(), highpoint.Clone(), profile, rotation,))
 
-    def set_deck_data(self, deck_data, cut_data, cut_planes):
+    def set_deck_data(self, deck_data, cut_data, cut_planes, chimney_cut):
         self.roof_deck_data = deck_data
         self.roof_cut_data = cut_data
         self.roof_cut_planes = cut_planes
+        self.chimney_cut = chimney_cut
 
     def get_woods_data(self):
         roofparts = []
@@ -167,14 +183,15 @@ class _RoofDeck(object):
         for lowpoint, highpoint, profile, rotation in self.roof_part_data:
             roofparts.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         # add steel
-        return roofparts, self.transformation_plane
+        return roofparts, self.transformation_plane, [self.chimney_cut] # todo: chimney
 
     def get_steel_data(self):
         roofparts = []
         for points, profile, rotation in self.roof_deck_data:
             roofparts.append(get_part_data(profile, rotation, points, "S235JR", 3))
         # todo: add cut aabb's
-        return roofparts, self.transformation_plane, self.roof_cut_data, self.roof_cut_planes
+        steel_cuts = self.roof_cut_data + [self.chimney_cut]
+        return roofparts, self.transformation_plane, steel_cuts, self.roof_cut_planes
 
     def get_name(self):
         return self.name

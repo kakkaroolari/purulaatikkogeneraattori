@@ -402,3 +402,52 @@ def hatchbox(rect, angle, spacing):
     lines = rotate(lines, angle, origin='centroid', use_radians=False)
     # return clipped array
     return rect.intersection(lines)
+
+def get_bounding_lines(bounding_box, transformer=None):
+    # z dir only
+    ordered = [bounding_box['min_point'], bounding_box['max_point']]
+    xs = [p.x for p in ordered]
+    ys = [p.y for p in ordered]
+    zs = [p.z for p in ordered]
+    lines = []
+    for i in range(2):
+        for j in range(2):
+            xx, yy = xs[i], ys[j]
+            lines.append([Point3(xx, yy, zs[0]), Point3(xx, yy, zs[1])])
+    print("4lines: ", lines)
+    if transformer is not None:
+        transformed_lines = []
+        for pp in lines:
+            lines_to_local = transformer.convertToLocal(pp)
+            transformed_lines.append(lines_to_local)
+        return transformed_lines
+    return lines
+
+# intersection function
+def isect_line_plane_v3(p0, p1, p_co=[0,0,0], p_no=[0,0,1], epsilon=1e-6):
+    """
+    p0, p1: define the line
+    p_co, p_no: define the plane:
+        p_co is a point on the plane (plane coordinate).
+        p_no is a normal vector defining the plane direction;
+             (does not need to be normalized).
+
+    return a Vector or None (when the intersection can't be found).
+    """
+
+    u = np.subtract(p1, p0) #sub_v3v3(p1, p0)
+    dot = np.dot(p_no, u) #dot_v3v3(p_no, u)
+
+    if abs(dot) > epsilon:
+        # the factor of the point between p0 -> p1 (0 - 1)
+        # if 'fac' is between (0 - 1) the point intersects with the segment.
+        # otherwise:
+        #  < 0.0: behind p0.
+        #  > 1.0: infront of p1.
+        w = np.subtract(p0, p_co) #sub_v3v3(p0, p_co)
+        fac = -np.dot(p_no, w) / dot #dot_v3v3(p_no, w) / dot
+        u = np.multiply(u, fac) #mul_v3_fl(u, fac)
+        return np.add(p0, u) #add_v3v3(p0, u)
+    else:
+        # The segment is parallel to plane
+        return None
