@@ -247,7 +247,7 @@ def create_window_boxes(windows):
         wall_local = transform.convertToLocal(line)
         # create aabb's
         for distance, holesize in defs.items():
-            dx = parse_width(holesize)*100 # "wrong way"
+            dx = parse_height(holesize)*100 # "wrong way"
             dy = parse_width(holesize)*100 # module
             xc = distance
             low = Point3(xc, 1160, -200)

@@ -217,9 +217,12 @@ def f2(num):
     return round(num,2)
 
 def create_cut_aabb(point_pair):
+    xs = [p.x for p in point_pair]
+    ys = [p.y for p in point_pair]
+    zs = [p.z for p in point_pair]
     return {
-        "min_point": point_pair[0], 
-        "max_point": point_pair[1]
+        "min_point": Point3(min(xs), min(ys), min(zs)),
+        "max_point": Point3(max(xs), max(ys), max(zs))
     }
 
 def create_cut_plane(point1, point2, normal):
