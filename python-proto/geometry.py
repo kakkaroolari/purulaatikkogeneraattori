@@ -113,6 +113,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
     defs3 = {2100: "14*12", 6290: "11*12"}
     window_cuts = create_window_boxes([(line1, defs1),(line2, defs2),(line3, defs3)])
+    trace("Holes for: ", len(window_cuts), " windows.", window_cuts)
 
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")

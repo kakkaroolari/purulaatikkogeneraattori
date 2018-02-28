@@ -226,7 +226,7 @@ def create_cut_plane(point1, point2, normal):
     aa = point1.GetVectorTo(point2)
     bb = Point3.Cross(aa, normal)
     point3 = point1.CopyLinear(bb)
-    trace("xyzabc: ", point1, point2, point3)
+    #trace("xyzabc: ", point1, point2, point3)
     return {
         "point1": point1,
         "point2": point2,
@@ -236,13 +236,13 @@ def create_cut_plane(point1, point2, normal):
 def get_differences(polygon):
     min_x, min_y, max_x, max_y = bounding_box(polygon)
     page = box(min_x, min_y, max_x, max_y)
-    trace("page: ", page)
+    #trace("page: ", page)
     ring = LinearRing([(p.x,p.y) for p in polygon])
-    trace("ring: ", ring)
+    #trace("ring: ", ring)
     wall_polygon = Polygon(ring.coords)
-    trace("polugon: ", wall_polygon)
+    #trace("polugon: ", wall_polygon)
     diffs = page.difference(wall_polygon)
-    trace("diffs: ", diffs)
+    #trace("diffs: ", diffs)
     aabbs = []
     for polygons in diffs.geoms:
         bound_box = polygons.bounds
@@ -283,7 +283,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         # last ninja
         last_y = max_y
         coords.extend([((min_x, last_y), (max_x, last_y))])
-        trace("crds: ", coords)
+        #trace("crds: ", coords)
     else:
         # vertical boards, e.g. cladding
         if first_offset is not None:
@@ -307,7 +307,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
     # turn array into Shapely object
     spoints = MultiLineString(coords)
     #trace_multiline(spoints)
-    trace("msl: ", spoints)
+    #trace("msl: ", spoints)
 
     wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
     #cladding_hatch = wall_polygon.intersection(spoints)

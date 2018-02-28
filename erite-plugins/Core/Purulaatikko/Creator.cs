@@ -197,17 +197,18 @@ namespace EritePlugins.Core.Purulaatikko
                 var highright = pointPair.max_point.GetPoint();
                 var pointList = new List<Point> { lowleft, highright };
                 var midy = pointList.Average(p => p.Y);
+                var midz = pointList.Average(p => p.Z);
                 //var midy = (highright.Y - lowleft.Y) / 2;
-                    //var midZ = pointPair.Select(p => p.GetPoint()).Average(p => p.Z);
-                    var maxx = highright.X;
+                //var midZ = pointPair.Select(p => p.GetPoint()).Average(p => p.Z);
+                var maxx = highright.X;
                     var minx = lowleft.X;
                     var maxZ = highright.Z;
                     var minZ = lowleft.Z;
-                    int height = Convert.ToInt32(maxZ - minZ);
-                    int width = Convert.ToInt32(highright.Y - lowleft.Y);
+                    int height = Convert.ToInt32(Math.Abs(maxZ - minZ));
+                    int width = Convert.ToInt32(Math.Abs(highright.Y - lowleft.Y));
                     var profileString = $"{width}*{height}";
-                    var startPoint = new Point(minx, midy, 0);
-                    var endPoint = new Point(maxx, midy, 0);
+                    var startPoint = new Point(minx, midy, midz);
+                    var endPoint = new Point(maxx, midy, midz);
                     Tracer._trace($"Boolean solid: {startPoint} -> {endPoint}, wid: {width}, hei: {height}.");
                     var operativePart = new Beam
                     {
