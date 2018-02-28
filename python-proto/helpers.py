@@ -169,12 +169,12 @@ class Transformer(object):
         self.LocalToWorldTransform = matrix4 * aLocalToWorldTransform
 
     def convertToLocal(self, points):
-        return self.convert_by_matrix(points, self.WorldToLocalTransform)
+        return Transformer.convert_by_matrix(points, self.WorldToLocalTransform)
 
     def convertToGlobal(self, points):
-        return self.convert_by_matrix(points, self.LocalToWorldTransform)
+        return Transformer.convert_by_matrix(points, self.LocalToWorldTransform)
 
-    def convert_by_matrix(self, points, matrix):
+    def convert_by_matrix(points, matrix):
         converted = []
         for point in points:
             data = [point.x, point.y, point.z, 1]

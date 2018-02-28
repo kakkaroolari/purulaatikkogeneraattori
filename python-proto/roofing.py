@@ -34,7 +34,7 @@ class Roofing( object ):
         mat = projection_matrix(origo.ToArr(), N.ToArr(), direction=[0,0,1])
         geomPlane = TransformationPlane(origo, X, Y)
         transistor = Transformer(geomPlane) # geom plane is not used in convert_by_matrix
-        points_in_correct_plane = transistor.convert_by_matrix(face_polygon, mat)
+        points_in_correct_plane = Transformer.convert_by_matrix(face_polygon, mat)
         # create part data object
         roof_data = _RoofDeck(section_name, geomPlane)
         #trace("roof is at: ", points_in_correct_plane)

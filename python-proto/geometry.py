@@ -115,6 +115,10 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     window_cuts = create_window_boxes([(line1, defs1),(line2, defs2),(line3, defs3)])
     trace("Holes for: ", len(window_cuts), " windows.", window_cuts)
 
+    # chimney pipe
+    section_cut = generate_loop(grid_x, grid_y, grid_z, [(0,1,0), (0,3,0), (0,3,4)])
+    chimney_parts, pipe_cuts = create_chimneypipe(section_cut, x=3110, y=5040, profile="620*900", roofangle=roof_angle)
+
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
@@ -180,6 +184,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     
     combined_data = [named_section("footing", footing),
             named_section("sockle", sockle),
+            named_section("chimney", chimney_parts),
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
@@ -197,10 +202,11 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         # woods
         part_data, coord_sys = roof_face.get_woods_data()
         name = roof_face.get_name()
-        combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys))
+        combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys, solids=pipe_cuts))
         # steels
         geom_data, coord_sys, cut_aabbs, cut_planes = roof_face.get_steel_data()
-        combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=cut_aabbs, planes=cut_planes))
+        roof_holes = cut_aabbs + pipe_cuts
+        combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=roof_holes, planes=cut_planes))
 
 
     with open('data.json', 'w') as jsonfile:
@@ -255,6 +261,32 @@ def create_window_boxes(windows):
             in_world = transform.convertToGlobal([low, high])
             aabbs.append(create_cut_aabb(in_world))
     return aabbs
+
+def create_chimneypipe(section_cut, x, y, profile, roofangle):
+    pro_x = parse_height(profile)
+    pro_y = parse_width(profile)
+    delta_x = pro_x/2
+    delta_y = pro_y/2
+    startPoint = Point3(x+delta_x, y+delta_y, 0)
+    # section cut at least 3 points
+    # tilt cut section plane to yz plane at placement of chimney
+    projection = projection_matrix(startPoint.ToArr(), [1,0,0], direction=[1,0,0])
+    section_cut_at_chimney = Transformer.convert_by_matrix(section_cut, projection)
+    profiler = create_cut_aabb(section_cut_at_chimney)
+    height = profiler['max_point'].z
+    wall_lenght = profiler['max_point'].y - profiler['min_point'].y
+    ceiling = get_ceiling(startPoint, section_cut_at_chimney[0], height, wall_lenght, roofangle)
+    main_elevation = ceiling + 800
+    endPoint = startPoint.CopyLinear(0, 0, main_elevation) # regs. 800 mm over
+    cutting_aabb = create_cut_aabb([Point3(x,y,0), Point3(x+pro_x, y+pro_y, main_elevation)])
+    concrete_parts = []
+    concrete_parts.append(get_part_data(profile, None, [startPoint, endPoint], "Concrete_Undefined"))
+    # hifistely
+    joined = endPoint.Clone()
+    top_elev = joined.CopyLinear(0, 0, 85) # module
+    end_profile = "{}*{}".format(parse_height(profile)+130, parse_width(profile)+130)
+    concrete_parts.append(get_part_data(end_profile, None, [joined, top_elev], "Concrete_Undefined"))
+    return concrete_parts, [cutting_aabb]
 
 def generate_roof_studs_2(grid_x, grid_y, grid_z):
     # xy plane
