@@ -22,6 +22,7 @@ from shapely.geometry import (box,
 from shapely.affinity import rotate
 from shapely import speedups
 from math import sqrt
+import re
 
 # enable Shapely speedups, if possible
 if speedups.available:
@@ -66,10 +67,27 @@ def get_ceiling(current, start, height, fullwidth, roofangle):
 def trace(*args, **kwargs):
     print(*args, file = sys.stderr, **kwargs)
 
-def create_wood_at(point, point2, profile, rotation=None):
+def parse_profile(profile):
+    p = re.compile('(\d+)\*(\d+)')
+    m = p.match(profile)
+    return m
+
+def parse_height(profile):
+    m = parse_profile(profile)
+    height = m.group(1)
+    #trace("profile height: " + height)
+    return float(height)
+
+def parse_width(profile):
+    m = parse_profile(profile)
+    width = m.group(2)
+    #trace("profile width: " + width)
+    return float(width)
+
+def create_wood_at(point, point2, profile, rotation=None, klass=None):
     low_point = point.Clone()
     high_point = point2.Clone()
-    return get_part_data(profile, rotation, [low_point, high_point], "Timber_Undefined")
+    return get_part_data(profile, rotation, [low_point, high_point], "Timber_Undefined", ts_class=klass)
 
 def get_part_data(profile, rotation, points, material, ts_class=None):
     return {

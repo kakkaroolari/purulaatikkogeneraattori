@@ -121,6 +121,9 @@
     <Content Include="..\..\python-proto\transformations.py">
       <Link>python\transformations.py</Link>
     </Content>
+    <Content Include="..\..\python-proto\windowframer.py">
+      <Link>python\windowframer.py</Link>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

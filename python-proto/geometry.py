@@ -7,8 +7,8 @@ from point import Point3
 from stiffeners import Stiffener
 from cladding import Cladding
 from roofing import Roofing
+from windowframer import WindowFramer
 import itertools #import izip
-import re
 import json
 import math
 from helpers import *
@@ -35,22 +35,6 @@ def toDistances(distanceList):
         sum += dd
     return absolutes
 
-def parse_profile(profile):
-    p = re.compile('(\d+)\*(\d+)')
-    m = p.match(profile)
-    return m
-
-def parse_height(profile):
-    m = parse_profile(profile)
-    height = m.group(1)
-    #trace("profile height: " + height)
-    return float(height)
-
-def parse_width(profile):
-    m = parse_profile(profile)
-    width = m.group(2)
-    #trace("profile width: " + width)
-    return float(width)
 
 def generate_loop(grid_x, grid_y, grid_z, pairs):
     master_polygon = []
@@ -112,7 +96,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     defs2 = {2650: "11*12"}
     line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
     defs3 = {2100: "14*12", 6290: "11*12"}
-    window_cuts = create_window_boxes([(line1, defs1),(line2, defs2),(line3, defs3)])
+    window_cuts, window_woods = create_window_boxes([(line1, defs1),(line2, defs2),(line3, defs3)])
     trace("Holes for: ", len(window_cuts), " windows.", window_cuts)
 
     # chimney pipe
@@ -188,7 +172,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("cladding_test", cladding_test, 93, solids=window_cuts)] # todo: oikeasti class niinku stiffeners
+            named_section("cladding_test", cladding_test, 44, solids=window_cuts), # todo: oikeasti class niinku stiffeners
+            named_section("window_edges", window_woods)]
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
@@ -240,6 +225,7 @@ def create_window_boxes(windows):
     #     + distance from start
     #     + window size
     aabbs = []
+    windower = WindowFramer()
     for wall_line in windows:
         line, defs = wall_line
         # create 2d coord sys
@@ -259,7 +245,9 @@ def create_window_boxes(windows):
             high = low.CopyLinear(dx, dy, 400)
             in_world = transform.convertToGlobal([low, high])
             aabbs.append(create_cut_aabb(in_world))
-    return aabbs
+            # window wood cutter
+            windower.add_window(transform, low, high, rotation)
+    return aabbs, windower.get_framing_woods()
 
 def create_chimneypipe(section_cut, x, y, profile, roofangle):
     pro_x = parse_height(profile)
