@@ -8,10 +8,11 @@ from transformations import (projection_matrix,
 #                              LinearRing)
 
 class WindowFramer( object ):
-    def __init__( self ):
+    def __init__( self, woods_class ):
         #self.transform = transformation_plane
         self.windows = []
         self.glassklass = 42
+        self.otherklass = woods_class
 
     def add_window(self, transform, lowleft, highright, rotation):
         #rotation = direction_to_rotation(direction)
@@ -31,25 +32,25 @@ class WindowFramer( object ):
         # up
         upper0 = Point3(lowleft.x-offset/2, highright.y, z_level)
         upper1 = upper0.CopyLinear(width+offset, 0, 0)
-        self._insert_wood_to_world(transform, upper0, upper1, edgeprofile, rotation)
+        self._insert_wood_to_world(transform, upper0, upper1, edgeprofile, Rotation.FRONT, self.otherklass)
         # left
         down=50
         lefty0 = Point3(lowleft.x, highright.y-offset/2, z_level)
         lefty1 = Point3(lowleft.x, lowleft.y-offset/2-down, z_level)
-        self._insert_wood_to_world(transform, lefty0, lefty1, edgeprofile, rotation)
+        self._insert_wood_to_world(transform, lefty0, lefty1, edgeprofile, Rotation.FRONT, self.otherklass)
         # right
         rigty0 = Point3(highright.x, highright.y-offset/2, z_level)
         rigty1 = Point3(highright.x, lowleft.y-offset/2-down, z_level)
-        self._insert_wood_to_world(transform, rigty0, rigty1, edgeprofile, rotation)
+        self._insert_wood_to_world(transform, rigty0, rigty1, edgeprofile, Rotation.FRONT, self.otherklass)
         # downer
         downy0 = Point3(lowleft.x+offset/2, lowleft.y, z_level)
         downy1 = Point3(highright.x-offset/2, lowleft.y, z_level)
-        self._insert_wood_to_world(transform, downy0, downy1, edgeprofile, rotation)
+        self._insert_wood_to_world(transform, downy0, downy1, edgeprofile, Rotation.FRONT, self.otherklass)
 
 
-    def _insert_wood_to_world(self, transform, begin, end, profile, rotation, klass=None):
+    def _insert_wood_to_world(self, transform, begin, end, profile, rotation, ts_class):
         in_world = transform.convertToGlobal([begin, end])
-        self.windows.append(create_wood_at(in_world[0], in_world[1], profile, rotation, klass=None))
+        self.windows.append(create_wood_at(in_world[0], in_world[1], profile, rotation, klass=ts_class))
 
     def get_framing_woods(self):
         return self.windows

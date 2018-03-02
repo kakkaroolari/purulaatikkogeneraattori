@@ -14,6 +14,8 @@ import math
 from helpers import *
 
 
+cornerwoodcolor = 41
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = itertools.tee(iterable)
@@ -121,15 +123,12 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         trace("Creating cladding for: ", key)
         cladding_loop = generate_loop(grid_x, grid_y, grid_z, value)
         fieldsaw.create_cladding(cladding_loop, "22*125", 33)
-
     cladding_test = fieldsaw.get_part_data()
-    # Used for testing stiffeners
-    #stiff_pairs = [(0,1),(3,1)]
-    #stiff_poly = generate_loop(grid_x, grid_y, stiff_pairs)
+
+    # corner boards
+    corner_boards = create_corner_boards(grid_x, grid_y, grid_z, cornerwoodcolor)
 
     mass_center = centroid(master_polygon)
-    #trace("centroid is: ", mass_center)
-    #trace("sockle is: ", ', '.join([str(x) for x in polygon]))
     # TODO: make the layers bottom up and increase z offset
     z_offset = parse_height(footingProfile)
 	# todo: use previous profile for xy-plane offset
@@ -173,7 +172,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
             named_section("cladding_test", cladding_test, 44, solids=window_cuts), # todo: oikeasti class niinku stiffeners
-            named_section("window_edges", window_woods)]
+            named_section("window_edges", window_woods),
+            named_section("corner_boards", corner_boards)]
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
@@ -225,7 +225,8 @@ def create_window_boxes(windows):
     #     + distance from start
     #     + window size
     aabbs = []
-    windower = WindowFramer()
+    #trace("glb: ", cornerwoodcolor)
+    windower = WindowFramer(cornerwoodcolor)
     for wall_line in windows:
         line, defs = wall_line
         # create 2d coord sys
@@ -248,6 +249,49 @@ def create_window_boxes(windows):
             # window wood cutter
             windower.add_window(transform, low, high, rotation)
     return aabbs, windower.get_framing_woods()
+
+def create_corner_boards(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
+    corners = [
+        generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (0,1,3), (1,1,1)]),
+        generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,1,3), (3,2,1)]),
+        generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (3,3,3), (2,3,1)]),
+        generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,3,3), (0,2,1)])
+    ]
+    corner_woods = []
+    for corner_tri in corners:
+        #trace("corner tri: ", corner_tri)
+        # create 2d coord sys
+        height = corner_tri[1].z - corner_tri[0].z
+        X = corner_tri[0].GetVectorTo(corner_tri[-1])
+        Y = corner_tri[0].GetVectorTo(corner_tri[1])
+        rotation = direction_to_rotation(Point3.Cross(X, Y))
+        rotation2 = direction_to_rotation(Point3.Reversed(X))
+        #trace("corner xy: ", corner_tri[0], X, Y)
+        coordinate_system = TransformationPlane(corner_tri[0], X, Y)
+        transform = Transformer(coordinate_system)
+        corner_local = transform.convertToLocal(corner_tri)
+        # offsetting
+        profile1 = "22*125" # forwards
+        half1 = parse_width(profile1)/2
+        thick1 = parse_height(profile1)
+        profile2 = "22*100" # behind
+        half2 = parse_width(profile2)/2
+        thick2 = parse_height(profile2)
+        # forwards
+        offset_x1 = -(z_level+thick2) + half1
+        offset_z1 = z_level + thick1/2
+        locallow = corner_local[0].CopyLinear(offset_x1, 0, offset_z1)
+        localhigh = locallow.CopyLinear(0,height,0)
+        in_world = transform.convertToGlobal([locallow, localhigh])
+        corner_woods.append(create_wood_at(in_world[0], in_world[1], profile1, rotation, cornerwoodcolor))
+        # behind
+        offset_x2 = -(z_level+thick2/2)
+        offset_z2 = z_level - half2
+        locallow = corner_local[0].CopyLinear(offset_x2, 0, offset_z2)
+        localhigh = locallow.CopyLinear(0,height,0)
+        in_world = transform.convertToGlobal([locallow, localhigh])
+        corner_woods.append(create_wood_at(in_world[0], in_world[1], profile2, rotation2, cornerwoodcolor))
+    return corner_woods
 
 def create_chimneypipe(section_cut, x, y, profile, roofangle):
     pro_x = parse_height(profile)
