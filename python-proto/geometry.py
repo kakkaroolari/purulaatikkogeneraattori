@@ -581,14 +581,12 @@ if __name__ == "__main__":
          - lattiajuoksut
          - valipohjavasat
          - ullakko ristikko
-         - kattolappeet per puoli -> porch business
-         - elevation grid, and roof centerline definitions
          - ulkovuorilaud. + rimat + nurkka + vesip.
-         - kattoruoteet + pellit + (holpat)
+         - (holpat)
          - loop-object with continues(), corners adjust
-         - python 2d shapely grid for cladding
-           (https://gis.stackexchange.com/questions/91362/looking-for-a-simple-hatching-algorithm)
-         - 
+         - attic windows
+         - roof border woods
+         - BUG: FRONT vs. TOP in one end window border woods
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
