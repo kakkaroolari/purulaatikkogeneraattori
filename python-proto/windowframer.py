@@ -26,7 +26,7 @@ class WindowFramer( object ):
         self._insert_wood_to_world(transform, win_low, win_high, profile, rotation, self.glassklass)
         # pielet (22)*100
         edgeprofile = "25*100" # magic number
-        level = parse_width(edgeprofile)
+        level = parse_height(edgeprofile)
         offset = parse_width(edgeprofile)
         z_level = 22 + 22 + level/2
         # up
