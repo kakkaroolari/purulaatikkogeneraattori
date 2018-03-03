@@ -9,7 +9,7 @@ class Cladding( object ):
         self.precut_cladding = []
         self.rimat = []
 
-    def create_cladding(self, cladding_loop, profile, outwards):
+    def create_cladding(self, cladding_loop, profile, outwards, holes):
         facades = []
         counter = 1
         A = cladding_loop[0].GetVectorTo(cladding_loop[1])
@@ -20,7 +20,7 @@ class Cladding( object ):
         transform = Transformer(coordinate_system)
         endwall = transform.convertToLocal(cladding_loop)
         # todo: hardcoded magic numbers, 127 mm should fit 22x125 (?)
-        point_pairs = create_hatch(endwall, 127.0, 87.50, 87.50)
+        point_pairs = create_hatch(endwall, 127.0, 87.50, 87.50, holes=holes)
         #boards = []
         previous_line = []
         for pp in point_pairs:

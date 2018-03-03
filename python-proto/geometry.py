@@ -97,8 +97,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     attic_offset = grid_y[-1]-300 # 600mm/2
     line0 = generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,1,1)])
     defs0 = [windowDef([attic_offset, 5000], "6*6", splitters=False)]
-    line1 = generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (3,1,1)])
-    defs1 = [windowDef([5920, level1], "14*12")]
+    line1 = generate_loop(grid_x, grid_y, grid_z, [(2,1,1), (3,1,1)])
+    defs1 = [windowDef([1870, level1], "14*12")]
     line2 = generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,3,1)])
     defs2 = [windowDef([2650, level1], "11*12"), windowDef([attic_offset, 5000], "6*6", splitters=False)]
     line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
@@ -115,8 +115,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     board_areas = {
         #"paaty_ala": [(0,3,1),(0,1,1),(0,1,3),(0,3,3)],
         #"paaty_kolmio": [(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)],
-        "vasemmalla": [(0,1,1), (1,1,1), (1,1,4),(0,1,4)],
-        #"oikealla": [(2,1,1), (3,1,1), (3,1,4),(2,1,4)],
+        #"vasemmalla": [(0,1,1), (1,1,1), (1,1,4),(0,1,4)],
+        "oikealla": {'poly':[(2,1,1), (3,1,1), (3,1,4),(2,1,4)], 'windows':defs1},
         #"etela_ala": [(3,1,1), (3,3,1), (3,3,3),(3,1,3)],
         #"etela_yla": [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)],
         #"takaseina": [(3,3,1), (0,3,1), (0,3,4),(3,3,4) ],
@@ -126,8 +126,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         }
     for key, value in board_areas.items():
         trace("Creating cladding for: ", key)
-        cladding_loop = generate_loop(grid_x, grid_y, grid_z, value)
-        fieldsaw.create_cladding(cladding_loop, "22*125", 33)
+        cladding_loop = generate_loop(grid_x, grid_y, grid_z, value['poly'])
+        fieldsaw.create_cladding(cladding_loop, "22*125", 33, value['windows'])
     cladding_test = fieldsaw.get_part_data()
 
     # corner boards

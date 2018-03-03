@@ -278,7 +278,7 @@ def bounding_box(polygon):
     max_y = max(p.y for p in polygon)
     return min_x, min_y, max_x, max_y
 
-def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, horizontal=False, exact=False):
+def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, horizontal=False, exact=False, holes=None):
     """ polygon: bounding box
         interval_wish: create i.e. 125mm boards, extend interval for equal spacing (rimalaudoitus)
         first_offset: like 50 mm. from corner (nurkkalaudat mahtuu)
@@ -334,6 +334,20 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
     #cladding_hatch = wall_polygon.intersection(spoints)
     trace("interval actual: ", actual_interval, max_x, min_x, max_y, min_y)
 
+    #windows = []
+    if holes is not None:
+        alt_poly = LinearRing([(p.x,p.y) for p in polygon])
+        for windef in holes:
+            x0 = windef.loc2D()[0]
+            y0 = windef.loc2D()[1]
+            dx = windef.width()
+            dy = windef.height()
+            rect = box(x0, y0, x0+dx, y0+dy)
+            alt_poly = alt_poly.difference(rect)
+        trace("alt_poly: ", alt_poly)
+            #windows.append(rect)
+            #wall_polygon = wall_polygon.difference(rect)
+    #spoints = wall_polygon.intersection(spoints)
 
     pps = []
     # convert back to 3d points
