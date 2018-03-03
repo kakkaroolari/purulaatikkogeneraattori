@@ -2,6 +2,7 @@ import math
 import sys
 #from numpy import *
 import numpy as np
+from numbers import Number
 
 # https://stackoverflow.com/questions/3252194/numpy-and-line-intersections
 #
@@ -72,6 +73,9 @@ def mul_v3_fl(v0, f):
 # no depss... end...
 class Point3( object ):
     def __init__( self, x, y, z ):
+        for i in [x, y, z]:
+            if not isinstance(i, Number):
+                raise ValueError("{} is not a number.".format(i))
         self.x, self.y, self.z = x, y, z
     def distFrom( self, x, y=None, z=None ):
         if isinstance(x, Point3):

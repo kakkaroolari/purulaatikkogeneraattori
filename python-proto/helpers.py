@@ -334,20 +334,23 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
     #cladding_hatch = wall_polygon.intersection(spoints)
     trace("interval actual: ", actual_interval, max_x, min_x, max_y, min_y)
 
-    #windows = []
+    windows = []
     if holes is not None:
-        alt_poly = LinearRing([(p.x,p.y) for p in polygon])
+        #alt_poly = LinearRing([(p.x,p.y) for p in polygon])
         for windef in holes:
             x0 = windef.loc2D()[0]
             y0 = windef.loc2D()[1]
             dx = windef.width()
             dy = windef.height()
             rect = box(x0, y0, x0+dx, y0+dy)
-            alt_poly = alt_poly.difference(rect)
-        trace("alt_poly: ", alt_poly)
-            #windows.append(rect)
+            #alt_poly = alt_poly.difference(rect)
+            windows.append(rect)
+        #trace("alt_poly: ", alt_poly)
             #wall_polygon = wall_polygon.difference(rect)
     #spoints = wall_polygon.intersection(spoints)
+        #alt_poly = Polygon(wall_polygon, [LinearRing(r) for r in windows])
+        #wall_polygon = Polygon([(p.x,p.y) for p in polygon], [r.exterior.coords for r in windows])
+        trace("alt_poly: ", wall_polygon)
 
     pps = []
     # convert back to 3d points
@@ -356,21 +359,40 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         source = linestr.coords
         # check isect
         coll = linestr.intersection(wall_polygon)
-        #trace("col: ", coll, source)
+        trace("col: ", coll, source)
         #try:
-        if isinstance(coll, MultiPoint) and 2 == len(coll):
-            source = LineString(coll).coords
+        #if isinstance(coll, MultiPoint):# and 2 == len(coll):
+        #    coll = [coll.geoms]
+        if isinstance(coll, LineString):# and 2 == len(coll):
+            coll = [coll.coords]
+        if isinstance(coll, MultiLineString) or isinstance(coll, MultiPoint):# and 2 == len(coll):
+            trace("multi")
+            coll = [a.coords for a in coll.geoms]
         #except:
         #    pass
         #trace("intersect: ", coll)
+        #coll.sort(key=lambda tup: tup[1])  # i=y, sorts in place
         linepts = []
-        for x,y in source:
-            #trace("begin: ", x, " end: ", y)
-            #pps.append(Point3(*begin[0], *begin[1], 0))#, Point3(*end[0], *end[1], 0))
-            linepts.append(Point3(x, y, 0))
-            #trace(begin, end)
-        #pps.push([Point3(x, y, 0), Point
-        pps.append(linepts)
+        for coord in coll:
+            for (x,y) in coord:
+                #trace("begin: ", x, " end: ", y)
+                #pps.append(Point3(*begin[0], *begin[1], 0))#, Point3(*end[0], *end[1], 0))
+                linepts.append(Point3(x, y, 0))
+                #trace(begin, end)
+                #pps.push([Point3(x, y, 0), Point
+                #if 2 == len(linepts):
+                #    pps.append([x.Clone() for x in linepts])
+                #    trace("linepts: ", linepts)
+                #    linepts = []
+        linepts.sort(key=lambda p: p.y)  # sort y
+        pairs = []
+        for point in linepts:
+            pairs.append(point)
+            if 2 == len(pairs):
+                pps.append([x.Clone() for x in pairs])
+                trace("pairs: ", pairs)
+                pairs = []
+
     # sort pairs by rising x coord, to get e.g. rimalaudoitus in between
     pps.sort(key=lambda tup: tup[1].x)  # sorts in place
 
