@@ -37,11 +37,11 @@ class WindowFramer( object ):
         down=50
         lefty0 = Point3(lowleft.x, highright.y-offset/2, z_level)
         lefty1 = Point3(lowleft.x, lowleft.y-offset/2-down, z_level)
-        self._insert_wood_to_world(transform, lefty0, lefty1, edgeprofile, Rotation.FRONT, self.otherklass)
+        self._insert_wood_to_world(transform, lefty0, lefty1, edgeprofile, rotation, self.otherklass)
         # right
         rigty0 = Point3(highright.x, highright.y-offset/2, z_level)
         rigty1 = Point3(highright.x, lowleft.y-offset/2-down, z_level)
-        self._insert_wood_to_world(transform, rigty0, rigty1, edgeprofile, Rotation.FRONT, self.otherklass)
+        self._insert_wood_to_world(transform, rigty0, rigty1, edgeprofile, rotation, self.otherklass)
         # downer
         downy0 = Point3(lowleft.x+offset/2, lowleft.y, z_level)
         downy1 = Point3(highright.x-offset/2, lowleft.y, z_level)
