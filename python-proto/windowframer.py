@@ -63,13 +63,27 @@ class WindowFramer( object ):
             unit = width / 4
         else:
             unit = width / 3
-        inleft0 = Point3(lowleft.x+unit, lowleft.y+div_wid, divlevel)
-        inleft1 = Point3(lowleft.x+unit, highright.y-div_wid, divlevel)
-        self._insert_wood_to_world(transform, inleft0, inleft1, divprofile, rotation, self.otherklass)
+        # edges vertical
+        self._create_inner_upside(lowleft, highright, lowleft.x+div_wid/2, div_wid, divlevel, divprofile, rotation, transform)
+        self._create_inner_upside(lowleft, highright, highright.x-div_wid/2, div_wid, divlevel, divprofile, rotation, transform)
+        # edges horizontal
+        self._create_inner_horizontal(lowleft, highright, highright.y-div_wid/2, div_wid, divlevel, divprofile, transform)
+        self._create_inner_horizontal(lowleft, highright, lowleft.y+div_wid/2, div_wid, divlevel, divprofile, transform)
+        # left inner
+        self._create_inner_upside(lowleft, highright, lowleft.x+unit, div_wid, divlevel, divprofile, rotation, transform)
         if is_wide_window:
-            inright0 = Point3(highright.x-unit, lowleft.y+div_wid, divlevel)
-            inright1 = Point3(highright.x-unit, highright.y-div_wid, divlevel)
-            self._insert_wood_to_world(transform, inright0, inright1, divprofile, rotation, self.otherklass)
+            # right inner
+            self._create_inner_upside(lowleft, highright, highright.x-unit, div_wid, divlevel, divprofile, rotation, transform)
+
+    def _create_inner_upside(self, lowleft, highright, at_x, div_wid, divlevel, profile, rotation, transform):
+        in0 = Point3(at_x, lowleft.y+div_wid, divlevel)
+        in1 = Point3(at_x, highright.y-div_wid, divlevel)
+        self._insert_wood_to_world(transform, in0, in1, profile, rotation, self.otherklass)
+
+    def _create_inner_horizontal(self, lowleft, highright, at_y, div_wid, divlevel, profile, transform):
+        in0 = Point3(lowleft.x, at_y, divlevel)
+        in1 = Point3(highright.x, at_y, divlevel)
+        self._insert_wood_to_world(transform, in0, in1, profile, Rotation.FRONT, self.otherklass)
 
     def _insert_wood_to_world(self, transform, begin, end, profile, rotation, ts_class):
         in_world = transform.convertToGlobal([begin, end])
