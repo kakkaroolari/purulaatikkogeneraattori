@@ -14,12 +14,13 @@ class WindowFramer( object ):
         self.glassklass = 42
         self.otherklass = woods_class
 
-    def add_window(self, transform, lowleft, highright, rotation):
+    def add_window(self, transform, lowleft, highright, rotation, divisor=True):
         #rotation = direction_to_rotation(direction)
         midx = Point3.Midpoint(lowleft, highright).x
         width = int(abs(highright.x - lowleft.x))
-        # put "glass" that's 22mm thick
-        thickness = 22
+        # put "glass" that's 10 mm thick
+        thickness = 10
+        stiff_n_cladding = 22 + 22
         profile = "{}*{}".format(thickness, width)
         win_low = Point3(midx, lowleft.y, thickness/2)
         win_high = Point3(midx, highright.y, thickness/2)
@@ -28,7 +29,7 @@ class WindowFramer( object ):
         edgeprofile = "25*100" # magic number
         level = parse_height(edgeprofile)
         offset = parse_width(edgeprofile)
-        z_level = 22 + 22 + level/2
+        z_level = stiff_n_cladding + level/2
         # up
         upper0 = Point3(lowleft.x-offset/2, highright.y, z_level)
         upper1 = upper0.CopyLinear(width+offset, 0, 0)
@@ -46,7 +47,29 @@ class WindowFramer( object ):
         downy0 = Point3(lowleft.x+offset/2, lowleft.y, z_level)
         downy1 = Point3(highright.x-offset/2, lowleft.y, z_level)
         self._insert_wood_to_world(transform, downy0, downy1, edgeprofile, Rotation.FRONT, self.otherklass)
-
+        if not divisor:
+            # i.e. attic windows
+            return
+        # glass frame separators
+        height = highright.y - lowleft.y
+        strength = stiff_n_cladding - thickness
+        div_wid = 50
+        divprofile = "{}*{}".format(strength, div_wid)
+        divlevel = thickness + strength/2
+        # todo all around frames
+        is_wide_window = True if width > height else False
+        # just visible
+        if is_wide_window:
+            unit = width / 4
+        else:
+            unit = width / 3
+        inleft0 = Point3(lowleft.x+unit, lowleft.y+div_wid, divlevel)
+        inleft1 = Point3(lowleft.x+unit, highright.y-div_wid, divlevel)
+        self._insert_wood_to_world(transform, inleft0, inleft1, divprofile, rotation, self.otherklass)
+        if is_wide_window:
+            inright0 = Point3(highright.x-unit, lowleft.y+div_wid, divlevel)
+            inright1 = Point3(highright.x-unit, highright.y-div_wid, divlevel)
+            self._insert_wood_to_world(transform, inright0, inright1, divprofile, rotation, self.otherklass)
 
     def _insert_wood_to_world(self, transform, begin, end, profile, rotation, ts_class):
         in_world = transform.convertToGlobal([begin, end])
