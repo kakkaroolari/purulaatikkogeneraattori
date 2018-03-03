@@ -6,6 +6,24 @@ from transformations import (projection_matrix,
                              angle_between_vectors)
 #from shapely.geometry import (box,
 #                              LinearRing)
+class windowDef(object):
+    def __init__(self, loc, size, splitters=True):
+        self.location = loc
+        self.size = size
+        self.splitters = splitters
+
+    def loc2D(self):
+        return self.location
+
+    def width(self):
+        # e.g. "9*4" defined the wrong way
+        return parse_height(self.size)*100
+
+    def height(self):
+        return parse_width(self.size)*100 # module
+    
+    def multiframe(self):
+        return self.splitters
 
 class WindowFramer( object ):
     def __init__( self, woods_class ):
@@ -35,7 +53,7 @@ class WindowFramer( object ):
         upper1 = upper0.CopyLinear(width+offset, 0, 0)
         self._insert_wood_to_world(transform, upper0, upper1, edgeprofile, Rotation.FRONT, self.otherklass)
         # left
-        down=50
+        down = 50 if divisor else 0
         lefty0 = Point3(lowleft.x, highright.y-offset/2, z_level)
         lefty1 = Point3(lowleft.x, lowleft.y-offset/2-down, z_level)
         self._insert_wood_to_world(transform, lefty0, lefty1, edgeprofile, rotation, self.otherklass)
@@ -47,9 +65,6 @@ class WindowFramer( object ):
         downy0 = Point3(lowleft.x+offset/2, lowleft.y, z_level)
         downy1 = Point3(highright.x-offset/2, lowleft.y, z_level)
         self._insert_wood_to_world(transform, downy0, downy1, edgeprofile, Rotation.FRONT, self.otherklass)
-        if not divisor:
-            # i.e. attic windows
-            return
         # glass frame separators
         height = highright.y - lowleft.y
         strength = stiff_n_cladding - thickness
@@ -57,7 +72,7 @@ class WindowFramer( object ):
         divprofile = "{}*{}".format(strength, div_wid)
         divlevel = thickness + strength/2
         # todo all around frames
-        is_wide_window = True if width > height else False
+        is_wide_window = True if width > height+1e-06 else False
         # just visible
         if is_wide_window:
             unit = width / 4
@@ -69,6 +84,9 @@ class WindowFramer( object ):
         # edges horizontal
         self._create_inner_horizontal(lowleft, highright, highright.y-div_wid/2, div_wid, divlevel, divprofile, transform)
         self._create_inner_horizontal(lowleft, highright, lowleft.y+div_wid/2, div_wid, divlevel, divprofile, transform)
+        if not divisor:
+            # i.e. attic windows
+            return
         # left inner
         self._create_inner_upside(lowleft, highright, lowleft.x+unit, div_wid, divlevel, divprofile, rotation, transform)
         if is_wide_window:

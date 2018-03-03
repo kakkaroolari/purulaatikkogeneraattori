@@ -7,7 +7,7 @@ from point import Point3
 from stiffeners import Stiffener
 from cladding import Cladding
 from roofing import Roofing
-from windowframer import WindowFramer
+from windowframer import WindowFramer, windowDef
 import itertools #import izip
 import json
 import math
@@ -92,13 +92,18 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
 
     # create window aabb's, possibly to be used all over the place
+    level1 = 1160
+    level2 = 4500 # random ass, todo: measure it
+    attic_offset = grid_y[-1]-300 # 600mm/2
+    line0 = generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,1,1)])
+    defs0 = [windowDef([attic_offset, 5000], "6*6", splitters=False)]
     line1 = generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (3,1,1)])
-    defs1 = {5920: "14*12"}
+    defs1 = [windowDef([5920, level1], "14*12")]
     line2 = generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,3,1)])
-    defs2 = {2650: "11*12"}
+    defs2 = [windowDef([2650, level1], "11*12"), windowDef([attic_offset, 5000], "6*6", splitters=False)]
     line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
-    defs3 = {2100: "14*12", 6290: "11*12"}
-    window_cuts, window_woods = create_window_boxes([(line1, defs1),(line2, defs2),(line3, defs3)])
+    defs3 = [windowDef([2100, level1], "14*12"), windowDef([6290, level1], "11*12")]
+    window_cuts, window_woods = create_window_boxes([(line0, defs0),(line1, defs1),(line2, defs2),(line3, defs3)])
     trace("Holes for: ", len(window_cuts), " windows.", window_cuts)
 
     # chimney pipe
@@ -238,18 +243,20 @@ def create_window_boxes(windows):
         transform = Transformer(coordinate_system)
         wall_local = transform.convertToLocal(line)
         # create aabb's
-        for distance, holesize in defs.items():
-            dx = parse_height(holesize)*100 # "wrong way"
-            dy = parse_width(holesize)*100 # module
-            xc = distance
-            low = Point3(xc, 1160, -200)
+        for win_def in defs:
+            dx = win_def.width() #parse_height(holesize)*100 # "wrong way"
+            dy = win_def.height() #parse_width(holesize)*100 # module
+            xc = win_def.loc2D()[0] #distance
+            yc = win_def.loc2D()[1] #1160
+            low = Point3(xc, yc, -200)
             high = low.CopyLinear(dx, dy, 400)
             in_world = transform.convertToGlobal([low, high])
             aabbs.append(create_cut_aabb(in_world))
             # window wood cutter
-            windower.add_window(transform, low, high, rotation)
+            windower.add_window(transform, low, high, rotation, win_def.multiframe())
     return aabbs, windower.get_framing_woods()
 
+#def _create_window_hole(distance_x, distance_y, 
 def create_corner_boards(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
     corners = [
         generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (0,1,3), (1,1,1)]),
@@ -586,7 +593,6 @@ if __name__ == "__main__":
          - loop-object with continues(), corners adjust
          - attic windows
          - roof border woods
-         - BUG: FRONT vs. TOP in one end window border woods
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
