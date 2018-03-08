@@ -259,9 +259,9 @@ def to_planedef(point1, point2=None, point3=None):
        p1, p2, p3 = point1, point2, point3
        pass
     return {
-        "point1": p1,
-        "point2": p2,
-        "point3": p3,
+        "point1": p1.Clone(),
+        "point2": p2.Clone(),
+        "point3": p3.Clone(),
     }
 
 def get_differences(polygon):

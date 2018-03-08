@@ -68,6 +68,9 @@ def is_short_side(p1, p2):
     # TODO: assumes purulaatikko always oriented same
     return abs(p2.y-p1.y) > 5000 
 
+def clad_def(polygon, windows, usefits=False):
+    return {'poly': polygon, 'windows': windows, 'usefits': usefits}
+
 def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline, roof_angle):
     # define line, or grid intersect
     pairs = [(0,1),
@@ -114,9 +117,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     fieldsaw = Cladding("cladding")
     board_areas = {
         #"paaty_ala":    {'poly':[(0,3,1),(0,1,1),(0,1,3),(0,3,3)], 'windows':defs0},
-        #"paaty_kolmio": {'poly':[(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], 'windows':None},
+        "paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
         #"vasemmalla": {'poly':[(0,1,1),(1,1,1),(1,1,4),(0,1,4)], 'windows':None},
-        "oikealla":  {'poly':[(2,1,1), (3,1,1), (3,1,4),(2,1,4)], 'windows':defs1},
+        "oikealla":  clad_def([(2,1,1), (3,1,1), (3,1,4),(2,1,4)], defs1),
         #"etela_ala": {'poly': [(3,1,1), (3,3,1), (3,3,3),(3,1,3)], 'windows':defs2},
         #"etela_yla": {'poly': [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)], 'windows':None},
         #"takaseina": {'poly': [(3,3,1), (0,3,1), (0,3,4),(3,3,4)], 'windows':defs3},
@@ -124,11 +127,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         #"kuisti_etu":{'poly': [(1,0,1), (2,0,1), (2,0,2),(1,0,2)], 'windows':None},
         #"kuisti_oik":{'poly': [(2,0,1), (2,1,1), (2,1,3),(2,0,2)], 'windows':None}
         }
-    for key, value in board_areas.items():
-        trace("Creating cladding for: ", key)
-        cladding_loop = generate_loop(grid_x, grid_y, grid_z, value['poly'])
-        fieldsaw.create_cladding(cladding_loop, "22*125", 33, value['windows'])
-    cladding_test = fieldsaw.get_part_data()
+
+    #cladding_test = fieldsaw.get_part_data()
 
     # corner boards
     corner_boards = create_corner_boards(grid_x, grid_y, grid_z, cornerwoodcolor)
@@ -176,7 +176,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("cladding_test", cladding_test, 44, solids=window_cuts), # todo: oikeasti class niinku stiffeners
+            #named_section("cladding_test", cladding_test, 44, solids=window_cuts), # todo: oikeasti class niinku stiffeners
             named_section("window_edges", window_woods),
             named_section("corner_boards", corner_boards)]
 
@@ -188,7 +188,18 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     for stf in stiffeners + porch_stiffeners:
         cuts = stf.get_cut_planes()
         fits = stf.get_fit_planes()
-        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=cuts, fits=fits, solids=window_cuts))
+        #combined_data.append(named_section(stf.name, stf.get_part_data(), planes=cuts, fits=fits, solids=window_cuts))
+
+    # cladding boards
+    for key, value in board_areas.items():
+        segment_name = "cladding_" + key
+        trace("Creating cladding for: ", segment_name)
+        segment_polygon = value['poly']
+        segment_windows = value['windows']
+        segment_isfitted = value['usefits']
+        cladding_loop = generate_loop(grid_x, grid_y, grid_z, segment_polygon)
+        wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
+        combined_data.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, fits=fittings))
 
     for roof_face in roof_woody.get_roofs_faces():
         # woods

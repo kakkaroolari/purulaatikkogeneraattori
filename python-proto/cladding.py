@@ -6,11 +6,12 @@ from helpers import *
 class Cladding( object ):
     def __init__( self, section_name):
         self.name = section_name
-        self.precut_cladding = []
-        self.rimat = []
+        #self.facades = []
+        #self.rimat = []
 
-    def create_cladding(self, cladding_loop, profile, outwards, holes):
-        facades = []
+    def create_cladding(self, cladding_loop, profile, outwards, holes, fittings=False):
+        precut_cladding = []
+        rimat = []
         counter = 1
         A = cladding_loop[0].GetVectorTo(cladding_loop[1])
         B = cladding_loop[0].GetVectorTo(cladding_loop[-1])
@@ -36,20 +37,38 @@ class Cladding( object ):
                 rimaHigh.Translate(0,0,22)
                 #trace("rimalow: ", rimaLow, " high: ", rimaHigh)
                 rima = transform.convertToGlobal([rimaLow, rimaHigh])
-                self.rimat.append((rima[0], rima[1], "22*50", rotation,))
+                rimat.append((rima[0], rima[1], "22*50", rotation,))
             previous_line = list(offsetted)
             # local to world
             pp_global = transform.convertToGlobal(offsetted)
             lowpoint = pp_global[1]#.Translate(0,0,outwards)
             highpoint = pp_global[0]
-            self.precut_cladding.append((lowpoint, highpoint, profile, rotation,))
+            precut_cladding.append((lowpoint, highpoint, profile, rotation,))
+        fits = None
+        if fittings:
+            #origo = endwall[-1].Clone()
+            #x_axis = origo.GetVectorTo(endwall[-2])
+            #y_axis = origo.CopyLinear(0,0,1000)
+            #normal = Point3.Cross(
+            leftpts = [endwall[-1], endwall[-2], endwall[-1].CopyLinear(0,0,1000)]
+            left_to_world = transform.convertToGlobal(leftpts)
+            left = to_planedef(left_to_world)
+            #origo = endwall[-3].Clone()
+            #x_axis = endwall[-2].GetVectorTo(origo)
+            #y_axis = origo.CopyLinear(0,0,1000)
+            rightpts = [endwall[-2], endwall[-3], endwall[-2].CopyLinear(0,0,1000)]
+            right_to_world = transform.convertToGlobal(rightpts)
+            right = to_planedef(right_to_world)
+            fits = [left, right]
+        #self.facades.append((precut_cladding, rimat, fits,))
+        return self._get_part_data(precut_cladding, rimat), fits
         #testback = transform.convertToGlobal(test)
         #return boards
 
-    def get_part_data(self):
+    def _get_part_data(self, precut_cladding, rimat):
         parts = []
-        for ss,tt,profile,rotation in self.precut_cladding:
+        for ss,tt,profile,rotation in precut_cladding:
             parts.append(create_wood_at(ss,tt,profile,rotation))
-        for ss,tt,profile,rotation in self.rimat:
+        for ss,tt,profile,rotation in rimat:
             parts.append(create_wood_at(ss,tt,profile,rotation))
         return parts
