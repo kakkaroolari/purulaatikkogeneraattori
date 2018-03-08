@@ -113,16 +113,16 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        #"paaty_ala":    {'poly':[(0,3,1),(0,1,1),(0,1,3),(0,3,3)], 'windows':defs0},
-        #"paaty_kolmio": {'poly':[(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], 'windows':None},
+        "paaty_ala":    {'poly':[(0,3,1),(0,1,1),(0,1,3),(0,3,3)], 'windows':defs0},
+        "paaty_kolmio": {'poly':[(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], 'windows':None},
         "vasemmalla": {'poly':[(0,1,1),(1,1,1),(1,1,4),(0,1,4)], 'windows':None},
         "oikealla":  {'poly':[(2,1,1), (3,1,1), (3,1,4),(2,1,4)], 'windows':defs1},
-        #"etela_ala": {'poly': [(3,1,1), (3,3,1), (3,3,3),(3,1,3)], 'windows':defs2},
-        #"etela_yla": {'poly': [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)], 'windows':None},
-        #"takaseina": {'poly': [(3,3,1), (0,3,1), (0,3,4),(3,3,4)], 'windows':defs3},
-        #"kuisti_vas":{'poly': [(1,1,1), (1,0,1), (1,0,2),(1,1,3)], 'windows':None},
-        #"kuisti_etu":{'poly': [(1,0,1), (2,0,1), (2,0,2),(1,0,2)], 'windows':None},
-        #"kuisti_oik":{'poly': [(2,0,1), (2,1,1), (2,1,3),(2,0,2)], 'windows':None}
+        "etela_ala": {'poly': [(3,1,1), (3,3,1), (3,3,3),(3,1,3)], 'windows':defs2},
+        "etela_yla": {'poly': [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)], 'windows':None},
+        "takaseina": {'poly': [(3,3,1), (0,3,1), (0,3,4),(3,3,4)], 'windows':defs3},
+        "kuisti_vas":{'poly': [(1,1,1), (1,0,1), (1,0,2),(1,1,3)], 'windows':None},
+        "kuisti_etu":{'poly': [(1,0,1), (2,0,1), (2,0,2),(1,0,2)], 'windows':None},
+        "kuisti_oik":{'poly': [(2,0,1), (2,1,1), (2,1,3),(2,0,2)], 'windows':None}
         }
     for key, value in board_areas.items():
         trace("Creating cladding for: ", key)
@@ -185,8 +185,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, 3850-porch_decline, roof_angle, mass_center)
     
 
-    #for stf in stiffeners + porch_stiffeners:
-    #    combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes(), solids=window_cuts))
+    for stf in stiffeners + porch_stiffeners:
+        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes(), solids=window_cuts))
 
     for roof_face in roof_woody.get_roofs_faces():
         # woods
@@ -355,7 +355,7 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z, chimney_pipe):
     trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs", chimney_pipe)
     roofer.do_one_roof_face("lape_1", roof_polygon_1, centerline[0])
-    #roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
+    roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
     return roofer
 
 
