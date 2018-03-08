@@ -199,7 +199,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         segment_isfitted = value['usefits']
         cladding_loop = generate_loop(grid_x, grid_y, grid_z, segment_polygon)
         wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
-        combined_data.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, fits=fittings))
+        combined_data.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, planes=fittings, fits=fittings))
 
     for roof_face in roof_woody.get_roofs_faces():
         # woods
