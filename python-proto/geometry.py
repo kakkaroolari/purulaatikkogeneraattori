@@ -116,16 +116,16 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        #"paaty_ala":    {'poly':[(0,3,1),(0,1,1),(0,1,3),(0,3,3)], 'windows':defs0},
+        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,3),(0,3,3)],         defs0),
         "paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
-        #"vasemmalla": {'poly':[(0,1,1),(1,1,1),(1,1,4),(0,1,4)], 'windows':None},
-        "oikealla":  clad_def([(2,1,1), (3,1,1), (3,1,4),(2,1,4)], defs1),
-        #"etela_ala": {'poly': [(3,1,1), (3,3,1), (3,3,3),(3,1,3)], 'windows':defs2},
-        #"etela_yla": {'poly': [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)], 'windows':None},
-        #"takaseina": {'poly': [(3,3,1), (0,3,1), (0,3,4),(3,3,4)], 'windows':defs3},
-        #"kuisti_vas":{'poly': [(1,1,1), (1,0,1), (1,0,2),(1,1,3)], 'windows':None},
-        #"kuisti_etu":{'poly': [(1,0,1), (2,0,1), (2,0,2),(1,0,2)], 'windows':None},
-        #"kuisti_oik":{'poly': [(2,0,1), (2,1,1), (2,1,3),(2,0,2)], 'windows':None}
+        "vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
+        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,4),(2,1,4)],         defs1),
+        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,3),(3,1,3)],         defs2),
+        "etela_yla":    clad_def([(3,1,3),(3,3,3),(3,3,4),(3,2,5),(3,1,4)], None, usefits=True),
+        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,4),(3,3,4)],         defs3),
+        "kuisti_vas":   clad_def([(1,1,1),(1,0,1),(1,0,2),(1,1,4)],         None, usefits=True),
+        "kuisti_etu":   clad_def([(1,0,1),(2,0,1),(2,0,2),(1,0,2)],         None, usefits=True),
+        "kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
         }
 
     #cladding_test = fieldsaw.get_part_data()
@@ -622,7 +622,8 @@ if __name__ == "__main__":
     # todo: add centerline to master grid later..
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, 1660.00, 3800.00, 3800.00]
-    grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
+    #grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
+    grid_z = [0.00, 1000.00, 3850.00-porch_decline, porch_decline-150, 150, 3800*math.tan(math.radians(roofangle))]
     # harja
     #grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
     centerline = [Point3(0, 1660.0 + 7600.0 / 2, 0), Point3(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
