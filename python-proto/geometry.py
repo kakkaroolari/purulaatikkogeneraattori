@@ -113,16 +113,16 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        #"paaty_ala": [(0,3,1),(0,1,1),(0,1,3),(0,3,3)],
-        #"paaty_kolmio": [(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)],
-        #"vasemmalla": [(0,1,1), (1,1,1), (1,1,4),(0,1,4)],
-        "oikealla": {'poly':[(2,1,1), (3,1,1), (3,1,4),(2,1,4)], 'windows':defs1},
-        #"etela_ala": [(3,1,1), (3,3,1), (3,3,3),(3,1,3)],
-        #"etela_yla": [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)],
-        #"takaseina": [(3,3,1), (0,3,1), (0,3,4),(3,3,4) ],
-        #"kuisti_vas": [(1,1,1), (1,0,1), (1,0,2),(1,1,3) ],
-        #"kuisti_etu": [(1,0,1), (2,0,1), (2,0,2),(1,0,2) ],
-        #"kuisti_oik": [(2,0,1), (2,1,1), (2,1,3),(2,0,2) ]
+        #"paaty_ala":    {'poly':[(0,3,1),(0,1,1),(0,1,3),(0,3,3)], 'windows':defs0},
+        #"paaty_kolmio": {'poly':[(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], 'windows':None},
+        "vasemmalla": {'poly':[(0,1,1),(1,1,1),(1,1,4),(0,1,4)], 'windows':None},
+        "oikealla":  {'poly':[(2,1,1), (3,1,1), (3,1,4),(2,1,4)], 'windows':defs1},
+        #"etela_ala": {'poly': [(3,1,1), (3,3,1), (3,3,3),(3,1,3)], 'windows':defs2},
+        #"etela_yla": {'poly': [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)], 'windows':None},
+        #"takaseina": {'poly': [(3,3,1), (0,3,1), (0,3,4),(3,3,4)], 'windows':defs3},
+        #"kuisti_vas":{'poly': [(1,1,1), (1,0,1), (1,0,2),(1,1,3)], 'windows':None},
+        #"kuisti_etu":{'poly': [(1,0,1), (2,0,1), (2,0,2),(1,0,2)], 'windows':None},
+        #"kuisti_oik":{'poly': [(2,0,1), (2,1,1), (2,1,3),(2,0,2)], 'windows':None}
         }
     for key, value in board_areas.items():
         trace("Creating cladding for: ", key)
@@ -185,14 +185,14 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, 3850-porch_decline, roof_angle, mass_center)
     
 
-    for stf in stiffeners + porch_stiffeners:
-        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes(), solids=window_cuts))
+    #for stf in stiffeners + porch_stiffeners:
+    #    combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes(), solids=window_cuts))
 
     for roof_face in roof_woody.get_roofs_faces():
         # woods
-        part_data, coord_sys, cut_aabbs = roof_face.get_woods_data()
+        part_data, coord_sys, cut_aabbs, fit_planes = roof_face.get_woods_data()
         name = roof_face.get_name()
-        combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys, solids=cut_aabbs))
+        combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys, solids=cut_aabbs, fits=fit_planes))
         # steels
         geom_data, coord_sys, cut_aabbs, cut_planes = roof_face.get_steel_data()
         combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=cut_aabbs, planes=cut_planes))
@@ -203,12 +203,19 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
 
-def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids=None):
+def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids=None, fits=None):
     # todo: can add assembly meta, classes etc.
     if ts_class is not None:
         for part in part_list:
             part["klass"] = ts_class
-    return { "section": name, "parts": part_list, "planes": planes, "coordinate_system": csys, "cutobjects": solids }
+    return { 
+        "section": name, 
+        "parts": part_list, 
+        "planes": planes, 
+        "coordinate_system": csys, 
+        "cutobjects": solids,
+        "fitplanes": fits
+        }
 
 def generate_lower_reach(polygon, z_offset, mass_center=None):
     return generate_offsetted_beams(polygon, "100*100", 50.0, z_offset + 50.0, "Timber_Undefined", mass_center)

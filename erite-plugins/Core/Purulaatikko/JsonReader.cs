@@ -44,6 +44,7 @@ namespace EritePlugins.Core.Purulaatikko
         public string section { get; set; }
         public JsPart[] parts { get; set; }
         public JsPlane[] planes { get; set; }
+        public JsPlane[] fitplanes { get; set; }        
         public JsCoordinateSystem coordinate_system { get; set; }
         public JsCutobject[] cutobjects { get; set; }
     }

@@ -115,6 +115,7 @@ namespace EritePlugins.Core.Purulaatikko
             int labelCounter = 0;
             List<Tuple<AABB, Part>> cutSolids = CreateSolids(section.cutobjects);
             List<Tuple<Tuple<Point, Point, Point>, Plane>> cutPlanes = CreatePlanes(section.planes);
+            List<Tuple<Tuple<Point, Point, Point>, Plane>> fitPlanes = CreatePlanes(section.fitplanes);
             Tracer._trace($"Found {cutSolids.Count} AABB's to cut with");
 
             string label = $"{labelPrefix}_{++labelCounter}";
@@ -139,6 +140,7 @@ namespace EritePlugins.Core.Purulaatikko
                         beam.SetLabel(label);
                         TryApplyCuts(beam, cutSolids);
                         TryApplyCuts(beam, cutPlanes);
+                        TryApplyFits(beam, fitPlanes);
                     }
                 }
                 catch (Exception e)
@@ -258,9 +260,49 @@ namespace EritePlugins.Core.Purulaatikko
                 {
                     Tracer._trace("Insert failed!");
                 }
-                Tracer._trace($"Cut solid: {part.Name}.");
+                //Tracer._trace($"Cut solid: {part.Name}.");
             }
 
+        }
+        private void TryApplyFits(Part beam, List<Tuple<Tuple<Point, Point, Point>, Plane>> fitPlanes)
+        {
+            if (null == fitPlanes) return;
+
+            var partBox = beam.GetCenterLine(false);
+            Line centerLine;
+            try
+            {
+                centerLine = new Line((Point) partBox[0], (Point) partBox[1]);
+            }
+            catch
+            {
+                return;
+            }
+
+            // check collision
+            foreach (var fitPlaneDef in fitPlanes)
+            {
+                //var pps = fitPlaneDef.Item1;
+                var plane = fitPlaneDef.Item2;
+                //var geomPlane = new GeometricPlane(pps.Item1, new Vector(pps.Item3));
+                var geomPlane = new GeometricPlane(plane.Origin, plane.AxisX, plane.AxisY);
+                var intersection = Intersection.LineToPlane(centerLine, geomPlane);
+                if (null == intersection)
+                {
+                    Tracer._trace($"Does not intersect with {beam.Profile.ProfileString}");
+                    continue;
+                }
+                var operativePart = fitPlaneDef.Item2;
+
+                var fitPlane = new Fitting();
+                fitPlane.Father = beam;
+                fitPlane.Plane = operativePart;
+                if (!fitPlane.Insert())
+                {
+                    Tracer._trace("Insert failed!");
+                }
+                Tracer._trace($"Fit solid: {beam.Name}.");
+            }
         }
 
         private void TryApplyCuts(Part part, List<Tuple<Tuple<Point, Point, Point>, Plane>> cutPlanes)
@@ -283,7 +325,7 @@ namespace EritePlugins.Core.Purulaatikko
                 {
                     Tracer._trace("Insert failed!");
                 }
-                Tracer._trace($"Cut solid: {part.Name}.");
+                //Tracer._trace($"Cut solid: {part.Name}.");
             }
 
         }

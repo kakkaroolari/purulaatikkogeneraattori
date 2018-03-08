@@ -18,9 +18,16 @@ class Roofing( object ):
             order is important. This comment is utter bollocks.
             todo: lape name
         """
+        oho = face_polygon[0].Clone()
         # first lape (xy plane)
         direction = face_polygon[0].GetVectorTo(face_polygon[1])
         direction = direction.Normalize(600)
+        # fit plane world - roof center
+        #third = high_point_actual.GetVectorTo(face_polygon[1])
+        #B = face_polygon[0].GetVectorTo(face_polygon[-1])
+        #A = face_polygon[0].GetVectorTo(high_point_actual)
+        fit_plane_world = [face_polygon[0].Clone(), face_polygon[-1].Clone(), high_point_actual.Clone()]
+        trace("fpw: ", fit_plane_world)
         # now we should project this in actual roof plane (xyz)
         origo = face_polygon[1].Clone()
         Y = origo.GetVectorTo(high_point_actual)
@@ -38,7 +45,6 @@ class Roofing( object ):
         points_in_correct_plane = Transformer.convert_by_matrix(face_polygon, mat)
         # create part data object
         roof_data = _RoofDeck(section_name, geomPlane)
-        #trace("roof is at: ", points_in_correct_plane)
         # now start creating hatch
         local_roof_poly = transistor.convertToLocal(points_in_correct_plane)
         #trace("local pts: ", local_points)
@@ -99,7 +105,9 @@ class Roofing( object ):
             cut_corners_local[-1].z = 200
             local_chimney = create_cut_aabb(cut_corners_local)
 
-        roof_data.set_deck_data(decking_data, cut_objs, cut_planes, local_chimney)
+        fit_plane_data_local = transistor.convertToLocal(fit_plane_world)
+        fit_planes = to_planedef(fit_plane_data_local)
+        roof_data.set_deck_data(decking_data, cut_objs, cut_planes, fit_planes, local_chimney)
         self.roof_decs.append(roof_data)
 
     def _generate_roof_deck(self, polygon, z_offset):
@@ -171,10 +179,11 @@ class _RoofDeck(object):
     def add_part_data(self, lowpoint, highpoint, profile, rotation):
         self.roof_part_data.append((lowpoint.Clone(), highpoint.Clone(), profile, rotation,))
 
-    def set_deck_data(self, deck_data, cut_data, cut_planes, chimney_cut):
+    def set_deck_data(self, deck_data, cut_data, cut_planes, fit_plane, chimney_cut):
         self.roof_deck_data = deck_data
         self.roof_cut_data = cut_data
         self.roof_cut_planes = cut_planes
+        self.roof_fit_plane = fit_plane
         self.chimney_cut = chimney_cut
 
     def get_woods_data(self):
@@ -183,7 +192,7 @@ class _RoofDeck(object):
         for lowpoint, highpoint, profile, rotation in self.roof_part_data:
             roofparts.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         # add steel
-        return roofparts, self.transformation_plane, [self.chimney_cut] # todo: chimney
+        return roofparts, self.transformation_plane, [self.chimney_cut], [self.roof_fit_plane]
 
     def get_steel_data(self):
         roofparts = []

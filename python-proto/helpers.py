@@ -244,14 +244,24 @@ def create_cut_aabb(point_pair):
     }
 
 def create_cut_plane(point1, point2, normal):
+    
     aa = point1.GetVectorTo(point2)
     bb = Point3.Cross(aa, normal)
     point3 = point1.CopyLinear(bb)
     #trace("xyzabc: ", point1, point2, point3)
+    return to_planedef(point1, point2, point3)
+
+def to_planedef(point1, point2=None, point3=None):
+    try:
+       p1, p2, p3 = point1[0], point1[1], point1[2]
+       trace("p1p2n: ", p1, p2, p3)
+    except TypeError:
+       p1, p2, p3 = point1, point2, point3
+       pass
     return {
-        "point1": point1,
-        "point2": point2,
-        "point3": point3,
+        "point1": p1,
+        "point2": p2,
+        "point3": p3,
     }
 
 def get_differences(polygon):
@@ -350,7 +360,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
     #spoints = wall_polygon.intersection(spoints)
         #alt_poly = Polygon(wall_polygon, [LinearRing(r) for r in windows])
         #wall_polygon = Polygon([(p.x,p.y) for p in polygon], [r.exterior.coords for r in windows])
-        trace("alt_poly: ", wall_polygon)
+        #trace("alt_poly: ", wall_polygon)
 
     pps = []
     # convert back to 3d points
@@ -359,14 +369,14 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         source = linestr.coords
         # check isect
         coll = linestr.intersection(wall_polygon)
-        trace("col: ", coll, source)
+        #trace("col: ", coll, source)
         #try:
         #if isinstance(coll, MultiPoint):# and 2 == len(coll):
         #    coll = [coll.geoms]
         if isinstance(coll, LineString):# and 2 == len(coll):
             coll = [coll.coords]
         if isinstance(coll, MultiLineString) or isinstance(coll, MultiPoint):# and 2 == len(coll):
-            trace("multi")
+            #trace("multi")
             coll = [a.coords for a in coll.geoms]
         #except:
         #    pass
@@ -390,7 +400,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
             pairs.append(point)
             if 2 == len(pairs):
                 pps.append([x.Clone() for x in pairs])
-                trace("pairs: ", pairs)
+                #trace("pairs: ", pairs)
                 pairs = []
 
     # sort pairs by rising x coord, to get e.g. rimalaudoitus in between
