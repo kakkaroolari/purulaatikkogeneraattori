@@ -90,7 +90,7 @@ class Roofing( object ):
             #trace(bb2[0], bb2[1], "32*100")
             roof_data.add_part_data(bb2[0], bb2[1], "32*100", Rotation.TOP)
         #decking_profile_half = 20 # todo: educated guess at this juncture
-        decking_data, cut_objs, cut_planes = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
+        decking_data, cut_objs, cut_planes, sides = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
         # add chimney to cut solids
         chimney = get_bounding_lines(self.chimney_world, transistor)
         cut_corners_local = []
@@ -107,7 +107,7 @@ class Roofing( object ):
 
         fit_plane_data_local = transistor.convertToLocal(fit_plane_world)
         fit_planes = to_planedef(fit_plane_data_local)
-        roof_data.set_deck_data(decking_data, cut_objs, cut_planes, fit_planes, local_chimney)
+        roof_data.set_deck_data(decking_data, sides, cut_objs, cut_planes, fit_planes, local_chimney)
         self.roof_decs.append(roof_data)
 
     def _generate_roof_deck(self, polygon, z_offset):
@@ -148,6 +148,16 @@ class Roofing( object ):
             for point in spp:
                 point.Translate(0, 0, extend_z)
             decking_data.append((spp, "S18-92W-1100-04", None,))
+        # L100
+        side_steels = []
+        xlin = 100/2-1
+        zlin = z_offset + profile_height - xlin
+        #xabs = xlin
+        extend_up2 = extend_up + 50 # todo: does not intersect
+        lpp = [polygon[1].CopyLinear(xlin,extend_down,zlin), polygon[0].CopyLinear(xlin,extend_up2,zlin)]
+        rpp = [polygon[-1].CopyLinear(-xlin,extend_up2,zlin), polygon[-2].CopyLinear(-xlin,extend_down,zlin)]
+        side_steels.append((lpp, "L100*100*1", Rotation.BACK,))
+        side_steels.append((rpp, "L100*100*1", Rotation.BACK,))
         # then cutting
         cuts = get_differences(polygon)
         cutAABBs = []
@@ -161,7 +171,7 @@ class Roofing( object ):
         #min_x, min_y, max_x, max_y = bounding_box(polygon)
         #page = box(min_x, min_y, max_x, max_y)
         #wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
-        return decking_data, cutAABBs, [cutPlane]
+        return decking_data, cutAABBs, [cutPlane], side_steels
 
     def get_roofs_faces(self):
         return self.roof_decs
@@ -179,8 +189,9 @@ class _RoofDeck(object):
     def add_part_data(self, lowpoint, highpoint, profile, rotation):
         self.roof_part_data.append((lowpoint.Clone(), highpoint.Clone(), profile, rotation,))
 
-    def set_deck_data(self, deck_data, cut_data, cut_planes, fit_plane, chimney_cut):
+    def set_deck_data(self, deck_data, side_data, cut_data, cut_planes, fit_plane, chimney_cut):
         self.roof_deck_data = deck_data
+        self.roof_side_data = side_data
         self.roof_cut_data = cut_data
         self.roof_cut_planes = cut_planes
         self.roof_fit_plane = fit_plane
@@ -201,6 +212,12 @@ class _RoofDeck(object):
         # todo: add cut aabb's
         steel_cuts = self.roof_cut_data + [self.chimney_cut]
         return roofparts, self.transformation_plane, steel_cuts, self.roof_cut_planes
+
+    def get_sides_data(self):
+        sideparts = []
+        for points, profile, rotation in self.roof_side_data:
+            sideparts.append(get_part_data(profile, rotation, points, "S235JR", 3))
+        return sideparts, self.transformation_plane, [self.roof_fit_plane]
 
     def get_name(self):
         return self.name

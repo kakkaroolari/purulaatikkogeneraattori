@@ -209,7 +209,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         # steels
         geom_data, coord_sys, cut_aabbs, cut_planes = roof_face.get_steel_data()
         combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=cut_aabbs, planes=cut_planes))
-
+        # side steels
+        sides_data, coord_sys, fit_planes = roof_face.get_sides_data()
+        combined_data.append(named_section("roof_sides_"+name, sides_data, ts_class=3, csys=coord_sys, fits=fit_planes))
 
     with open('data.json', 'w') as jsonfile:
         json.dump(combined_data, jsonfile, cls=MyEncoder, indent=2)
