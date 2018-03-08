@@ -113,16 +113,16 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        "paaty_ala":    {'poly':[(0,3,1),(0,1,1),(0,1,3),(0,3,3)], 'windows':defs0},
-        "paaty_kolmio": {'poly':[(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], 'windows':None},
-        "vasemmalla": {'poly':[(0,1,1),(1,1,1),(1,1,4),(0,1,4)], 'windows':None},
+        #"paaty_ala":    {'poly':[(0,3,1),(0,1,1),(0,1,3),(0,3,3)], 'windows':defs0},
+        #"paaty_kolmio": {'poly':[(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], 'windows':None},
+        #"vasemmalla": {'poly':[(0,1,1),(1,1,1),(1,1,4),(0,1,4)], 'windows':None},
         "oikealla":  {'poly':[(2,1,1), (3,1,1), (3,1,4),(2,1,4)], 'windows':defs1},
-        "etela_ala": {'poly': [(3,1,1), (3,3,1), (3,3,3),(3,1,3)], 'windows':defs2},
-        "etela_yla": {'poly': [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)], 'windows':None},
-        "takaseina": {'poly': [(3,3,1), (0,3,1), (0,3,4),(3,3,4)], 'windows':defs3},
-        "kuisti_vas":{'poly': [(1,1,1), (1,0,1), (1,0,2),(1,1,3)], 'windows':None},
-        "kuisti_etu":{'poly': [(1,0,1), (2,0,1), (2,0,2),(1,0,2)], 'windows':None},
-        "kuisti_oik":{'poly': [(2,0,1), (2,1,1), (2,1,3),(2,0,2)], 'windows':None}
+        #"etela_ala": {'poly': [(3,1,1), (3,3,1), (3,3,3),(3,1,3)], 'windows':defs2},
+        #"etela_yla": {'poly': [(3,1,3), (3,3,3), (3,3,4),(3,2,5),(3,1,4)], 'windows':None},
+        #"takaseina": {'poly': [(3,3,1), (0,3,1), (0,3,4),(3,3,4)], 'windows':defs3},
+        #"kuisti_vas":{'poly': [(1,1,1), (1,0,1), (1,0,2),(1,1,3)], 'windows':None},
+        #"kuisti_etu":{'poly': [(1,0,1), (2,0,1), (2,0,2),(1,0,2)], 'windows':None},
+        #"kuisti_oik":{'poly': [(2,0,1), (2,1,1), (2,1,3),(2,0,2)], 'windows':None}
         }
     for key, value in board_areas.items():
         trace("Creating cladding for: ", key)
@@ -186,7 +186,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     
 
     for stf in stiffeners + porch_stiffeners:
-        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=stf.get_planes(), solids=window_cuts))
+        cuts = stf.get_cut_planes()
+        fits = stf.get_fit_planes()
+        combined_data.append(named_section(stf.name, stf.get_part_data(), planes=cuts, fits=fits, solids=window_cuts))
 
     for roof_face in roof_woody.get_roofs_faces():
         # woods

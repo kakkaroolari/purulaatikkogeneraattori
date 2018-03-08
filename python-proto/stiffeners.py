@@ -11,6 +11,7 @@ class Stiffener( object ):
         self.masscenter = mass_center
         self.precut_stiffeners = []
         self.planes = []
+        self.biplanes = []
 
     def get_part_data(self):
         parts = []
@@ -19,8 +20,11 @@ class Stiffener( object ):
         return parts
         #return self.precut_stiffeners
 
-    def get_planes(self):
-        return self.planes
+    def get_cut_planes(self):
+        return self.biplanes
+
+    def get_fit_planes(self):
+        return self.planes + self.biplanes
 
     def stiffener_one_plane(self, startpoint, endpoint, height, roofangle):
         """
@@ -59,7 +63,7 @@ class Stiffener( object ):
         F = endpoint.CopyLinear(0,0,height)
         #trace("ABCD: ", A, B, C, D)
         # fit vectors (to export json)
-        self.planes.append(create_cut_plane(A.Clone(), B.Clone(), D.GetVectorTo(A)))
+        self.biplanes.append(create_cut_plane(A.Clone(), B.Clone(), D.GetVectorTo(A)))
         self.planes.append(create_cut_plane(A.Clone(), D.Clone(), B.GetVectorTo(A)))
         if extremely_short_wall:
             self.planes.append(create_cut_plane(B.Clone(), C.Clone(), A.GetVectorTo(B)))

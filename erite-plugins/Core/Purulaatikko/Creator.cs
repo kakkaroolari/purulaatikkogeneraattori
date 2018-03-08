@@ -268,16 +268,8 @@ namespace EritePlugins.Core.Purulaatikko
         {
             if (null == fitPlanes) return;
 
-            var partBox = beam.GetCenterLine(false);
-            Line centerLine;
-            try
-            {
-                centerLine = new Line((Point) partBox[0], (Point) partBox[1]);
-            }
-            catch
-            {
-                return;
-            }
+            var centerLine = GetBeamCenterLineSegmentExpanded(beam, 10.0);
+            if (null == centerLine) return;
 
             // check collision
             foreach (var fitPlaneDef in fitPlanes)
@@ -286,7 +278,7 @@ namespace EritePlugins.Core.Purulaatikko
                 var plane = fitPlaneDef.Item2;
                 //var geomPlane = new GeometricPlane(pps.Item1, new Vector(pps.Item3));
                 var geomPlane = new GeometricPlane(plane.Origin, plane.AxisX, plane.AxisY);
-                var intersection = Intersection.LineToPlane(centerLine, geomPlane);
+                var intersection = Intersection.LineSegmentToPlane(centerLine, geomPlane);
                 if (null == intersection)
                 {
                     Tracer._trace($"Does not intersect with {beam.Profile.ProfileString}");
@@ -303,6 +295,32 @@ namespace EritePlugins.Core.Purulaatikko
                 }
                 Tracer._trace($"Fit solid: {beam.Name}.");
             }
+        }
+
+        private LineSegment GetBeamCenterLineSegmentExpanded(Part beam, double expandBy = 0)
+        {
+            var partBox = beam.GetCenterLine(false);
+            LineSegment centerLine = null;
+            try
+            {
+                Point p1 = (Point) partBox[0];
+                Point p2 = (Point) partBox[1];
+                if (expandBy > 1e-6)
+                {
+                    var v12 = new Vector(p2 - p1);
+                    var v21 = new Vector(p1 - p2);
+                    v12.Normalize(expandBy);
+                    v21.Normalize(expandBy);
+                    p1.Translate(v21.X, v21.Y, v21.Z);
+                    p2.Translate(v12.X, v12.Y, v12.Z);
+                }
+                centerLine = new LineSegment(p1, p2);
+            }
+            catch
+            {
+                Tracer._trace($"Line Segment creation failed for profile: {beam?.Profile.ProfileString}");
+            }
+            return centerLine;
         }
 
         private void TryApplyCuts(Part part, List<Tuple<Tuple<Point, Point, Point>, Plane>> cutPlanes)
