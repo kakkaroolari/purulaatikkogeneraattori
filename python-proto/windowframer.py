@@ -6,11 +6,13 @@ from transformations import (projection_matrix,
                              angle_between_vectors)
 #from shapely.geometry import (box,
 #                              LinearRing)
-class windowDef(object):
-    def __init__(self, loc, size, splitters=True):
-        self.location = loc
+class HoleDef(object):
+    def __init__(self, loc, size):
+        try:
+            self.location = [loc[0], loc[1]]
+        except:
+            self.location = [loc, 0]
         self.size = size
-        self.splitters = splitters
 
     def loc2D(self):
         return self.location
@@ -21,7 +23,22 @@ class windowDef(object):
 
     def height(self):
         return parse_width(self.size)*100 # module
+
+    def minmax_points(self, lowz=-200, highz=400):
+        dx = self.width() #parse_height(holesize)*100 # "wrong way"
+        dy = self.height() #parse_width(holesize)*100 # module
+        xc = self.location[0] #distance
+        yc = self.location[1] #1160
+        low = Point3(xc, yc, lowz)
+        high = low.CopyLinear(dx, dy, highz)
+        return low, high
     
+class windowDef(HoleDef):
+    def __init__(self, loc, size, splitters=True):
+        self.splitters = splitters
+        super().__init__(loc, size)
+        #python2 compat: HoleDef.__init__(self, self, loc, size)
+
     def multiframe(self):
         return self.splitters
 

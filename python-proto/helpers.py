@@ -79,7 +79,7 @@ def trace(*args, **kwargs):
     print(*args, file = sys.stderr, **kwargs)
 
 def parse_profile(profile):
-    p = re.compile('(\d+)\*(\d+)')
+    p = re.compile('(\d*\.\d+|\d+)\*(\d*\.\d+|\d+)')
     m = p.match(profile)
     return m
 

@@ -7,7 +7,7 @@ from point import Point3
 from stiffeners import Stiffener
 from cladding import Cladding
 from roofing import Roofing
-from windowframer import WindowFramer, windowDef
+from windowframer import WindowFramer, windowDef, HoleDef
 import itertools #import izip
 import json
 import math
@@ -267,12 +267,7 @@ def create_window_boxes(windows):
         wall_local = transform.convertToLocal(line)
         # create aabb's
         for win_def in defs:
-            dx = win_def.width() #parse_height(holesize)*100 # "wrong way"
-            dy = win_def.height() #parse_width(holesize)*100 # module
-            xc = win_def.loc2D()[0] #distance
-            yc = win_def.loc2D()[1] #1160
-            low = Point3(xc, yc, -200)
-            high = low.CopyLinear(dx, dy, 400)
+            low, high = win_def.minmax_points()
             in_world = transform.convertToGlobal([low, high])
             aabbs.append(create_cut_aabb(in_world))
             # window wood cutter
