@@ -179,9 +179,13 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            named_section("inside_walls", inside_walls[0], 3),
+            #named_section("inside_walls", inside_walls[0], 3),
             named_section("window_edges", window_woods),
             named_section("corner_boards", corner_boards)]
+
+    # inside walls
+    for idx in range(len(inside_walls)):
+        combined_data.append(named_section("inside_wall_{}".format(idx), inside_walls[idx], 3))
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
@@ -587,19 +591,29 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
         first_item = False
     return polygonMidpoints
 
+def looper(gx, gy, gz, xy1, xy2, zlow=0, zup=1):
+    grid_points = []
+    for x,y in [xy1, xy2]:
+        grid_points.append((x,y,zlow))
+    for x,y in [xy2, xy1]:
+        grid_points.append((x,y,zup))
+    return generate_loop(gx, gy, gz, grid_points)
+
 def create_inside():
     # create grids
-    boards = 22 + 13
+    boards = 22 #+ 13
     outer_wall = 100 + boards
-    inside_wall = 100 + 2*boards
+    inside_wall = 170 #100 + 2*boards
     porch_off = 1660.00 + outer_wall
-    igrid_x = [outer_wall, chimney_x - outer_wall]
-    igrid_y = [porch_off, (chimney_y-porch_off)+inside_wall/2]
+    igrid_x = [outer_wall, chimney_x - outer_wall, 620-inside_wall/2, inside_wall/2, 5280-boards]
+    igrid_y = [porch_off, (chimney_y-porch_off), inside_wall/2, 900-inside_wall, inside_wall/2, 3220-boards]
     igrid_z = [1200.00, 2500.0]
     # first inside wall
-    wall_loop = generate_loop(igrid_x, igrid_y, igrid_z, [(0,1,0),(1,1,0),(1,1,1),(0,1,1)])
-    wall1 = create_inside_wall(wall_loop)
-    return [wall1]
+    wall1 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (0,2), (1,2)))
+    wall2 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (3,3), (4,3)))
+    wall3 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,0), (2,1)))
+    wall4 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,4), (2,5)))
+    return [wall1, wall2, wall3, wall4]
 
 def create_inside_wall(wall_loop):
     transform, rotation = create_vertical_stdplane(wall_loop[:2])
@@ -620,9 +634,12 @@ def create_inside_wall(wall_loop):
     on_face_point_pairs = create_hatch(wall_local, 600.0, halfpro, halfpro)
     # to some csys?
     stud_data = []
-    for pp in on_face_point_pairs + [lower, upper]:
+    for pp in [lower, upper]:
         to_world = transform.convertToGlobal(pp)
-        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*100", Rotation.TOP))
+        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*170", Rotation.TOP))
+    for pp in on_face_point_pairs:
+        to_world = transform.convertToGlobal(pp)
+        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*170", rotation-1))
     return stud_data
 
 from json import JSONEncoder
