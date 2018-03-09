@@ -15,6 +15,8 @@ from helpers import *
 
 
 cornerwoodcolor = 41
+chimney_x = 3110
+chimney_y = 5040
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -111,21 +113,21 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # chimney pipe
     section_cut = generate_loop(grid_x, grid_y, grid_z, [(0,1,0), (0,3,0), (0,3,4)])
-    chimney_parts, pipe_cut = create_chimneypipe(section_cut, x=3110, y=5040, profile="620*900", roofangle=roof_angle)
+    chimney_parts, pipe_cut = create_chimneypipe(section_cut, x=chimney_x, y=chimney_y, profile="620*900", roofangle=roof_angle)
 
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,3),(0,3,3)],         defs0),
-        "paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
+        #"paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,3),(0,3,3)],         defs0),
+        #"paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
         "vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
-        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,4),(2,1,4)],         defs1),
-        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,3),(3,1,3)],         defs2),
-        "etela_yla":    clad_def([(3,1,3),(3,3,3),(3,3,4),(3,2,5),(3,1,4)], None, usefits=True),
-        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,4),(3,3,4)],         defs3),
-        "kuisti_vas":   clad_def([(1,1,1),(1,0,1),(1,0,2),(1,1,4)],         None, usefits=True),
-        "kuisti_etu":   clad_def([(1,0,1),(2,0,1),(2,0,2),(1,0,2)],         None, usefits=True),
-        "kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
+        #"oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,4),(2,1,4)],         defs1),
+        #"etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,3),(3,1,3)],         defs2),
+        #"etela_yla":    clad_def([(3,1,3),(3,3,3),(3,3,4),(3,2,5),(3,1,4)], None, usefits=True),
+        #"takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,4),(3,3,4)],         defs3),
+        #"kuisti_vas":   clad_def([(1,1,1),(1,0,1),(1,0,2),(1,1,4)],         None, usefits=True),
+        #"kuisti_etu":   clad_def([(1,0,1),(2,0,1),(2,0,2),(1,0,2)],         None, usefits=True),
+        #"kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
         }
 
     #cladding_test = fieldsaw.get_part_data()
@@ -165,8 +167,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     #trace("sockle is: " + pprint.pformat(sockle))
     #trace("footing is: " + pprint.pformat(footing))
 
-    # first 3d loop experiment
-
+    # inner walls
+    inside_walls = create_inside()
+    trace("iw: ", inside_walls)
 
     #combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
     
@@ -176,7 +179,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
             named_section("lower_reach", lower_reach, 4),
             named_section("higher_reach", higher_reach, 3),
             named_section("wall_studs", wall_studs, 3),
-            #named_section("cladding_test", cladding_test, 44, solids=window_cuts), # todo: oikeasti class niinku stiffeners
+            named_section("inside_walls", inside_walls[0], 3),
             named_section("window_edges", window_woods),
             named_section("corner_boards", corner_boards)]
 
@@ -256,13 +259,7 @@ def create_window_boxes(windows):
     windower = WindowFramer(cornerwoodcolor)
     for wall_line in windows:
         line, defs = wall_line
-        # create 2d coord sys
-        Z = line[0].CopyLinear(0,0,2000) # wall height irrelevant
-        A = line[0].GetVectorTo(line[1])
-        B = line[0].GetVectorTo(Z)
-        rotation = direction_to_rotation(Point3.Cross(A, B))
-        coordinate_system = TransformationPlane(line[0], A, B)
-        transform = Transformer(coordinate_system)
+        transform, rotation = create_vertical_stdplane(line)
         wall_local = transform.convertToLocal(line)
         # create aabb's
         for win_def in defs:
@@ -370,7 +367,7 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z, chimney_pipe):
     trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs", chimney_pipe)
     roofer.do_one_roof_face("lape_1", roof_polygon_1, centerline[0])
-    roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
+    #roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
     return roofer
 
 
@@ -589,6 +586,44 @@ def generate_offsetted_lines(master_polygon, xy_offset, z_offset, adjustByProfil
         #})
         first_item = False
     return polygonMidpoints
+
+def create_inside():
+    # create grids
+    boards = 22 + 13
+    outer_wall = 100 + boards
+    inside_wall = 100 + 2*boards
+    porch_off = 1660.00 + outer_wall
+    igrid_x = [outer_wall, chimney_x - outer_wall]
+    igrid_y = [porch_off, (chimney_y-porch_off)+inside_wall/2]
+    igrid_z = [1200.00, 2500.0]
+    # first inside wall
+    wall_loop = generate_loop(igrid_x, igrid_y, igrid_z, [(0,1,0),(1,1,0),(1,1,1),(0,1,1)])
+    wall1 = create_inside_wall(wall_loop)
+    return [wall1]
+
+def create_inside_wall(wall_loop):
+    transform, rotation = create_vertical_stdplane(wall_loop[:2])
+    wall_local = transform.convertToLocal(wall_loop)
+    #length = wall_local[1].x
+    # profile = 50*100:
+    halfpro = 25
+    # alajuoksu
+    lower = [wall_local[0].CopyLinear(0, halfpro, 0), wall_local[1].CopyLinear(0, halfpro, 0)]
+    upper = [wall_local[-1].CopyLinear(0, -halfpro, 0), wall_local[-2].CopyLinear(0, -halfpro, 0)]
+    # studs
+    for point in wall_local[:2]:
+        # up by 50 mm
+        point.Translate(0, halfpro*2, 0)
+    for point in wall_local[2:]:
+        # down by 50 mm
+        point.Translate(0, -halfpro*2, 0)
+    on_face_point_pairs = create_hatch(wall_local, 600.0, halfpro, halfpro)
+    # to some csys?
+    stud_data = []
+    for pp in on_face_point_pairs + [lower, upper]:
+        to_world = transform.convertToGlobal(pp)
+        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*100", Rotation.TOP))
+    return stud_data
 
 from json import JSONEncoder
 class MyEncoder(JSONEncoder):

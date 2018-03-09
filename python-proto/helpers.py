@@ -52,6 +52,17 @@ def direction_to_rotation(direction, invert=False):
     return Rotation.BELOW
 
 
+def create_vertical_stdplane(line):
+    # create 2d coord sys
+    Z = line[0].CopyLinear(0,0,2000) # wall height irrelevant
+    A = line[0].GetVectorTo(line[1])
+    B = line[0].GetVectorTo(Z)
+    rotation = direction_to_rotation(Point3.Cross(A, B))
+    coordinate_system = TransformationPlane(line[0], A, B)
+    transform = Transformer(coordinate_system)
+    return transform, rotation
+
+
 def get_ceiling(current, start, height, fullwidth, roofangle):
     if not roofangle:
         return height
