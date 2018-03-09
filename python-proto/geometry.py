@@ -604,37 +604,59 @@ def create_inside():
     igrid_y = [porch_off, (chimney_y-porch_off), inside_wall/2, 900-inside_wall, inside_wall/2, 3220-boards]
     igrid_z = [1200.00, 2500.0]
     # first inside wall
-    wall1 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (0,2), (1,2)))
+    wall1 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (0,2), (1,2)), holedef=HoleDef(1250, "9*19"))
     wall2 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (3,3), (4,3)))
     wall3 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,0), (2,1)))
     wall4 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,4), (2,5)))
     return [wall1, wall2, wall3, wall4]
 
-def create_inside_wall(wall_loop):
+def create_inside_wall(wall_loop, holedef=None):
     transform, rotation = create_vertical_stdplane(wall_loop[:2])
     wall_local = transform.convertToLocal(wall_loop)
     #length = wall_local[1].x
     # profile = 50*100:
     halfpro = 25
-    # alajuoksu
+    # alajuoksu, ei se oikeesti nain mee mutta..
     lower = [wall_local[0].CopyLinear(0, halfpro, 0), wall_local[1].CopyLinear(0, halfpro, 0)]
-    upper = [wall_local[-1].CopyLinear(0, -halfpro, 0), wall_local[-2].CopyLinear(0, -halfpro, 0)]
+    #upper = [wall_local[-1].CopyLinear(0, -halfpro, 0), wall_local[-2].CopyLinear(0, -halfpro, 0)]
     # studs
     for point in wall_local[:2]:
         # up by 50 mm
         point.Translate(0, halfpro*2, 0)
-    for point in wall_local[2:]:
-        # down by 50 mm
-        point.Translate(0, -halfpro*2, 0)
+    #for point in wall_local[2:]:
+    #    # down by 50 mm
+    #    point.Translate(0, -halfpro*2, 0)
     on_face_point_pairs = create_hatch(wall_local, 600.0, halfpro, halfpro)
     # to some csys?
     stud_data = []
-    for pp in [lower, upper]:
+    for pp in [lower]:
         to_world = transform.convertToGlobal(pp)
-        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*170", Rotation.TOP))
-    for pp in on_face_point_pairs:
+        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*100", Rotation.TOP))
+    legal_face_point_pairs = []
+    if holedef is None:
+        legal_face_point_pairs = on_face_point_pairs
+    else:
+        x0, y0, dx, dy = holedef.minmax_coords()
+        low, high = holedef.minmax_points()
+        height = holedef.height()
+        left = Point3(low.x-halfpro, 0, 0)
+        right = Point3(high.x+halfpro, 0, 0)
+        stud_found = False
+        for pp in on_face_point_pairs:
+            #if pp[0].x < x0-halfpro and pp[0].distFrom(left) < 100:
+            #    pp[0].x = left.x
+            #    pp[1].x = left.x
+            if pp[0].x > x0-3*halfpro and pp[0].x < x0+dx+3*halfpro:
+                stud_found = True
+            else:
+                legal_face_point_pairs.append(pp)
+        if stud_found:
+            legal_face_point_pairs.append([left, left.CopyLinear(0,height,0)])
+            legal_face_point_pairs.append([right, right.CopyLinear(0,height,0)])
+
+    for pp in legal_face_point_pairs:
         to_world = transform.convertToGlobal(pp)
-        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*170", rotation-1))
+        stud_data.append(create_wood_at(to_world[0], to_world[1], "50*100", rotation-1))
     return stud_data
 
 from json import JSONEncoder

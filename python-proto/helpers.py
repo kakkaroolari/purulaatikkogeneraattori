@@ -359,10 +359,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
     if holes is not None:
         #alt_poly = LinearRing([(p.x,p.y) for p in polygon])
         for windef in holes:
-            x0 = windef.loc2D()[0]
-            y0 = windef.loc2D()[1]
-            dx = windef.width()
-            dy = windef.height()
+            x0, y0, dx, dy = windef.minmax_coords()
             rect = box(x0, y0, x0+dx, y0+dy)
             #alt_poly = alt_poly.difference(rect)
             windows.append(rect)
@@ -431,7 +428,7 @@ def trace_multiline(mls):
     trace("mls: ", linepps)
 
 # https://gis.stackexchange.com/questions/91362/looking-for-a-simple-hatching-algorithm
-def hatchbox(rect, angle, spacing):
+def hatchbox(rect, angle, spacing, hole=None):
     """
     returns a Shapely geometry (MULTILINESTRING, or more rarely,
     GEOMETRYCOLLECTION) for a simple hatched rectangle.
@@ -476,6 +473,10 @@ def hatchbox(rect, angle, spacing):
     # Rotate by angle around box centre
     lines = rotate(lines, angle, origin='centroid', use_radians=False)
     # return clipped array
+    if holes is not None:
+        x0, y0, dx, dy = windef.minmax_coords()
+        rect = box(x0, y0, x0+dx, y0+dy)
+        lines = lines.difference(rect)
     return rect.intersection(lines)
 
 def get_bounding_lines(bounding_box, transformer=None):

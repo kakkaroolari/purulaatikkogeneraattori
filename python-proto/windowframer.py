@@ -25,13 +25,17 @@ class HoleDef(object):
         return parse_width(self.size)*100 # module
 
     def minmax_points(self, lowz=-200, highz=400):
-        dx = self.width() #parse_height(holesize)*100 # "wrong way"
-        dy = self.height() #parse_width(holesize)*100 # module
-        xc = self.location[0] #distance
-        yc = self.location[1] #1160
+        xc, yc, dx, dy = self.minmax_coords()
         low = Point3(xc, yc, lowz)
         high = low.CopyLinear(dx, dy, highz)
         return low, high
+
+    def minmax_coords(self):
+        x0 = self.location[0] #distance
+        y0 = self.location[1] #1160
+        dx = self.width() #parse_height(holesize)*100 # "wrong way"
+        dy = self.height() #parse_width(holesize)*100 # module
+        return x0, y0, dx, dy
     
 class windowDef(HoleDef):
     def __init__(self, loc, size, splitters=True):
