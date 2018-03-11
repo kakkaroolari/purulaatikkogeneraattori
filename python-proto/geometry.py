@@ -84,11 +84,19 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     master_polygon = generate_loop(grid_x, grid_y, None, pairs)
     #trace(pprint.pformat(master_polygon))
 
+    # porch grid elevations (keep separate)
+    porch_width = toDistances(grid_x)[2]
+    #trace("pw: ", porch_width)
+    porchroofangle = roofangle
+    pelevs_z = [0.00, 1000.00, 3000, (porch_width/2)*math.tan(math.radians(porchroofangle))]
+    pgrid_x = [0.00, porch_width/2, porch_width/2]
+    pgrid_y = [0.00, porch_depth]
     porch = [(0,1),
         (0,0),
         (2,0),
         (2,1)]
-    porch_polygon = generate_loop(grid_x, grid_y, None, porch)
+    porch_polygon = generate_loop(pgrid_x, pgrid_y, None, porch)
+    #get_plane_data
 
     high_pairs1 = [(0,1),
         (3,1)]
@@ -131,8 +139,6 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         #"kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
         }
 
-    #cladding_test = fieldsaw.get_part_data()
-
     # corner boards
     corner_boards = create_corner_boards(grid_x, grid_y, grid_z, cornerwoodcolor)
 
@@ -148,32 +154,24 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     higher_reach += generate_lower_reach(high_polygon2, 4750.0, mass_center)
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650, roof_angle)
 
+    # bit different
+    roof_woody = generate_main_roof(grid_x, grid_y, grid_z, pipe_cut)
+
     # porch
     porch_decline = porch_depth*math.tan(math.radians(roof_angle))
     footing += generate_footing(porch_polygon, footingProfile, sockleProfile)
     sockle += generate_sockle(porch_polygon, sockleProfile, z_offset)
     offset_porch_woods_outwards(porch_polygon, mass_center)
-    lower_reach += generate_lower_reach(porch_polygon, 1000.0)
-    higher_reach += generate_lower_reach(porch_polygon, 4750.0-porch_decline)
-    wall_studs += generate_wall_studs(porch_polygon, 1000.0, 3650-porch_decline)
-
-
-    # bit different
-    roof_woody = generate_roof_studs_2(grid_x, grid_y, grid_z, pipe_cut)
-    #roof_woods = roof_woody.get_part_data()
-
-    #trace("high: " + pprint.pformat(higher_reach))
-    #trace("studs: " + pprint.pformat(wall_studs))
-    #trace("low: " + pprint.pformat(lower_reach))
-    #trace("sockle is: " + pprint.pformat(sockle))
-    #trace("footing is: " + pprint.pformat(footing))
+    lower_reach += generate_lower_reach(porch_polygon, toDistances(pelevs_z)[1])
+    higher_reach += generate_lower_reach(porch_polygon, toDistances(pelevs_z)[2])
+    wall_studs += generate_wall_studs(porch_polygon, toDistances(pelevs_z)[1], pelevs_z[2]-100)
+    porch_roofer = create_porch_roof(pgrid_x, pgrid_y, pelevs_z, roof_woody)
 
     # inner walls
     inside_walls = create_inside()
-    trace("iw: ", inside_walls)
+    #trace("iw: ", inside_walls)
 
-    #combined_data = footing + sockle + lower_reach + wall_studs + higher_reach
-    
+    ## main json
     combined_data = [named_section("footing", footing),
             named_section("sockle", sockle),
             named_section("chimney", chimney_parts),
@@ -214,7 +212,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
         combined_data.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, planes=fittings, fits=fittings))
 
-    for roof_face in roof_woody.get_roofs_faces():
+    #trace("roof_woody: ", roof_woody.get_roofs_faces(), porch_roofer.get_roofs_faces())
+    for roof_face in roof_woody.get_roofs_faces() + porch_roofer.get_roofs_faces():
+        trace("add roof: ", roof_face.get_name())
         # woods
         part_data, coord_sys, cut_aabbs, fit_planes = roof_face.get_woods_data()
         name = roof_face.get_name()
@@ -350,7 +350,7 @@ def create_chimneypipe(section_cut, x, y, profile, roofangle):
     concrete_parts.append(get_part_data(end_profile, None, [joined, top_elev], "Concrete_Undefined"))
     return concrete_parts, cutting_aabb
 
-def generate_roof_studs_2(grid_x, grid_y, grid_z, chimney_pipe):
+def generate_main_roof(grid_x, grid_y, grid_z, chimney_pipe):
     # xy plane
     roof_tuples_1 = [(0,2,4), # with porch roof extension
         (0,1,4),
@@ -369,41 +369,43 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z, chimney_pipe):
     roof_polygon_2 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_2)
     # centerline at highest elevation
     centerline = generate_loop(grid_x, grid_y, grid_z, [(0,2,5),(3,2,5)])
-    trace("roof centerline: ", centerline)
+    #trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs", chimney_pipe)
     roofer.do_one_roof_face("lape_1", roof_polygon_1, centerline[0])
     #roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
+    # todo: hack, return face1 plane outside
+
     return roofer
 
+def create_porch_roof(pgrid_x, pgrid_y, pgrid_z, main_roofer):
+    # isect porch roof to main roof: p0, p1, origo, normal
+    centerline = generate_loop(pgrid_x, pgrid_y, pgrid_z, [(1,1,-1),(1,0,-1)])
+    pco, pno = main_roofer.roof_decs[0].get_plane_data()
+    p1 = centerline[0].ToArr()
+    p2 = centerline[1].ToArr()
+    #trace("wtf: ", p1,p2,pco,pno)
+    rooftip = None #isect_line_plane_v3(p1,p2,pco,pno)
+    if rooftip is not None:
+        maxy = toDistances(pgrid_y)[-1]
+        max2y = rooftip[1]
+        trace("pw22: ", maxy, "rt: ", rooftip)
+        ylastdist = max2y - maxy, 
+        pgrid_y.append(ylastdist)
 
-def generate_roof_studs(roof_polygon, z_offset, centerline, roof_angle):
-    #overscan = 600.0 # negative to expand
-    #roof_polygon = extend_or_subtract(master_polygon, -overscan, z_offset)
-    # hardcoded as rectangle
-    begin = roof_polygon[0].Clone()
-    end = roof_polygon[1].Clone()
-    begin.Translate(0, 0, z_offset)
-    end.Translate(0, 0, z_offset)
-    mainwall = begin.GetVectorTo(end)
-    mainwall_length = begin.distFrom(end)
-    holppa = 125.0
-    last = (mainwall_length - 2 * holppa) % 900.0
-    count = int((mainwall_length - 2 * holppa) / 900.0)
-    othercorner = roof_polygon[-2].Clone()
-    othercorner.Translate(0, 0, z_offset)
-    #trace("begin: ", begin, " other: ", othercorner)
-    sidewall = begin.distFrom(othercorner)
-    # ylajuoksun linja shiftataan harjakorkeutaan
-    half_width = sidewall / 2
-    roofelevation = half_width * math.tan(math.radians(roof_angle))
-    # ylatukipuun linja siftataan raystaslinjaksi
-    halflife2 = 600.0
-    roofdeclination = -halflife2 * math.tan(math.radians(roof_angle))
-    #trace("halflife: ", half_width, " dist: ", mainwall_length, " elev: ", roofelevation)
-    # todo: much same as wall panel framing
-    lowside = create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation, -halflife2, roofdeclination)
-    highside = create_one_side_trusses(othercorner, mainwall, mainwall_length, count, last, holppa, -half_width, roofelevation, halflife2, roofdeclination)
-    return lowside + highside
+    # xy plane
+    roof_tuples_1 = [(1,-1,-2),
+        (0,-1,-2),
+        (0,0,-2),
+        (1,0,-2)]
+    #trace("pw3: ", pgrid_x, pgrid_y, pgrid_z)
+    roof_polygon_1 = generate_loop(pgrid_x, pgrid_y, pgrid_z, roof_tuples_1)
+    roofer = Roofing("porch_rafters", None)
+    roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0])
+    #roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
+    # todo: hack, return face1 plane outside
+
+    return roofer
+
 
 def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation, halflife2, roofdeclination):
     direction = mainwall.Clone()

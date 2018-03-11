@@ -92,18 +92,19 @@ class Roofing( object ):
         #decking_profile_half = 20 # todo: educated guess at this juncture
         decking_data, cut_objs, cut_planes, sides = self._generate_roof_deck(local_roof_poly, 125/2 + 22 + 32)
         # add chimney to cut solids
-        chimney = get_bounding_lines(self.chimney_world, transistor)
-        cut_corners_local = []
         local_chimney = None
-        for corner_line in chimney:
-            # isect level 62.5 + 22 + 32 ~
-            isect = isect_line_plane_v3(corner_line[0].ToArr(), corner_line[1].ToArr(), [0,0,100])
-            if isect is not None:
-                cut_corners_local.append(Point3(isect[0], isect[1], 0))
-        if 4 == len(cut_corners_local):
-            cut_corners_local[0].z = -200
-            cut_corners_local[-1].z = 200
-            local_chimney = create_cut_aabb(cut_corners_local)
+        if self.chimney_world is not None:
+            chimney = get_bounding_lines(self.chimney_world, transistor)
+            cut_corners_local = []
+            for corner_line in chimney:
+                # isect level 62.5 + 22 + 32 ~
+                isect = isect_line_plane_v3(corner_line[0].ToArr(), corner_line[1].ToArr(), [0,0,100])
+                if isect is not None:
+                    cut_corners_local.append(Point3(isect[0], isect[1], 0))
+            if 4 == len(cut_corners_local):
+                cut_corners_local[0].z = -200
+                cut_corners_local[-1].z = 200
+                local_chimney = create_cut_aabb(cut_corners_local)
 
         fit_plane_data_local = transistor.convertToLocal(fit_plane_world)
         fit_planes = to_planedef(fit_plane_data_local)
@@ -185,6 +186,13 @@ class _RoofDeck(object):
         self.roof_part_data = []
         self.roof_deck_data = []
         self.roof_cut_data = []
+
+    def get_plane_data(self):
+        origin = self.transformation_plane.origin()
+        x = self.transformation_plane.x_axis()
+        y = self.transformation_plane.y_axis()
+        normal = Point3.Cross(x, y).ToArr()
+        return origin, normal
 
     def add_part_data(self, lowpoint, highpoint, profile, rotation):
         self.roof_part_data.append((lowpoint.Clone(), highpoint.Clone(), profile, rotation,))
