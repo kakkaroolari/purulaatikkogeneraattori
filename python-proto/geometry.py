@@ -84,8 +84,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     master_polygon = generate_loop(grid_x, grid_y, None, pairs)
     #trace(pprint.pformat(master_polygon))
 
-    porch = [(1,1),
-        (1,0),
+    porch = [(0,1),
+        (0,0),
         (2,0),
         (2,1)]
     porch_polygon = generate_loop(grid_x, grid_y, None, porch)
@@ -121,8 +121,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     board_areas = {
         #"paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,3),(0,3,3)],         defs0),
         #"paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
-        "vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
-        #"oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,4),(2,1,4)],         defs1),
+        #"vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
+        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,4),(2,1,4)],         defs1),
         #"etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,3),(3,1,3)],         defs2),
         #"etela_yla":    clad_def([(3,1,3),(3,3,3),(3,3,4),(3,2,5),(3,1,4)], None, usefits=True),
         #"takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,4),(3,3,4)],         defs3),
@@ -354,10 +354,10 @@ def generate_roof_studs_2(grid_x, grid_y, grid_z, chimney_pipe):
     # xy plane
     roof_tuples_1 = [(0,2,4), # with porch roof extension
         (0,1,4),
-        (1,1,4),
-        (1,0,4),
-        (2,0,4),
-        (2,1,4),
+        #(1,1,4),
+        #(1,0,4),
+        #(2,0,4),
+        #(2,1,4),
         (3,1,4),
         (3,2,4)]
     roof_polygon_1 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_1)
@@ -647,7 +647,7 @@ def create_inside_wall(wall_loop, holedef=None):
         low, high = holedef.minmax_points()
         ## aabb
 
-        height = holedef.height()
+        height = holedef.height()-halfpro*2
         left = Point3(low.x-halfpro, 2*halfpro, 0)
         right = Point3(high.x+halfpro, 2*halfpro, 0)
         stud_found = False
@@ -671,7 +671,7 @@ def create_inside_wall(wall_loop, holedef=None):
         to_world = transform.convertToGlobal(pp)
         stud_data.append(create_wood_at(to_world[0], to_world[1], profile, rotation-1))
     # hatch..
-    pps_local = create_hatch(wall_local, 100, first_offset=50, horizontal=True, holes=None)
+    pps_local = create_hatch(wall_local, 100, first_offset=0, horizontal=True, holes=None)
     for pp in pps_local:
         # both sides
         l, r = pp[0], pp[1]
