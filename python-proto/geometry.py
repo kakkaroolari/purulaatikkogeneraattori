@@ -185,7 +185,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # inside walls
     for idx in range(len(inside_walls)):
-        combined_data.append(named_section("inside_wall_{}".format(idx), inside_walls[idx], 3))
+        wall, aabb = inside_walls[idx]
+        combined_data.append(named_section("inside_wall_{}".format(idx), wall, 3, solids=[aabb]))
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
@@ -604,11 +605,11 @@ def create_inside():
     igrid_y = [porch_off, (chimney_y-porch_off), inside_wall/2, 900-inside_wall, inside_wall/2, 3220-boards]
     igrid_z = [1200.00, 2500.0]
     # first inside wall
-    wall1 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (0,2), (1,2)), holedef=HoleDef(1250, "9*19"))
-    wall2 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (3,3), (4,3)))
-    wall3 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,0), (2,1)))
-    wall4 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,4), (2,5)))
-    return [wall1, wall2, wall3, wall4]
+    wall1, aabb1 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (0,2), (1,2)), holedef=HoleDef(1250, "9*19"))
+    wall2, aabb2 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (3,3), (4,3)))
+    wall3, aabb3 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,0), (2,1)))
+    wall4, aabb4 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,4), (2,5)))
+    return [(wall1, aabb1), (wall2, aabb2), (wall3, aabb3), (wall4, aabb4)]
 
 def create_inside_wall(wall_loop, holedef=None):
     transform, rotation = create_vertical_stdplane(wall_loop[:2])
@@ -633,11 +634,14 @@ def create_inside_wall(wall_loop, holedef=None):
         to_world = transform.convertToGlobal(pp)
         stud_data.append(create_wood_at(to_world[0], to_world[1], profile, Rotation.TOP))
     legal_face_point_pairs = []
+    aabb = None
     if holedef is None:
         legal_face_point_pairs = on_face_point_pairs
     else:
         x0, y0, dx, dy = holedef.minmax_coords()
         low, high = holedef.minmax_points()
+        ## aabb
+
         height = holedef.height()
         left = Point3(low.x-halfpro, 2*halfpro, 0)
         right = Point3(high.x+halfpro, 2*halfpro, 0)
@@ -673,9 +677,15 @@ def create_inside_wall(wall_loop, holedef=None):
         for p1,p2 in [(l1,r1),(l2,r2)]:
             to_world = transform.convertToGlobal([p1,p2])
             stud_data.append(create_wood_at(to_world[0], to_world[1], "22*100", rotation))
-    return stud_data
+    # aabb's
+    aabb = None
+    if holedef is not None:
+        low, high = holedef.minmax_points()
+        to_world = transform.convertToGlobal([low, high])
+        aabb = create_cut_aabb(to_world)
 
-def _insert_to_world(
+    return stud_data, aabb
+
 
 from json import JSONEncoder
 class MyEncoder(JSONEncoder):
