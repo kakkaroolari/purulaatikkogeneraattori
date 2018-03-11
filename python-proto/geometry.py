@@ -16,7 +16,8 @@ from helpers import *
 
 cornerwoodcolor = 41
 chimney_x = 3110
-chimney_y = 5040
+porch_depth = 3000
+chimney_y = 3080 + porch_depth
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -148,7 +149,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650, roof_angle)
 
     # porch
-    porch_decline = 1660.00*math.tan(math.radians(roof_angle))
+    porch_decline = porch_depth*math.tan(math.radians(roof_angle))
     footing += generate_footing(porch_polygon, footingProfile, sockleProfile)
     sockle += generate_sockle(porch_polygon, sockleProfile, z_offset)
     offset_porch_woods_outwards(porch_polygon, mass_center)
@@ -186,7 +187,11 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     # inside walls
     for idx in range(len(inside_walls)):
         wall, aabb = inside_walls[idx]
-        combined_data.append(named_section("inside_wall_{}".format(idx), wall, 3, solids=[aabb]))
+        cutsolids = None
+        if aabb is not None:
+            cutsolids = [aabb]
+        combined_data.append(named_section("inside_wall_{}".format(idx), wall, 3, solids=cutsolids))
+
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
@@ -600,15 +605,15 @@ def create_inside():
     boards = 22 #+ 13
     outer_wall = 100 + boards
     inside_wall = 170 #100 + 2*boards
-    porch_off = 1660.00 + outer_wall
+    porch_off = porch_depth + outer_wall
     igrid_x = [outer_wall, chimney_x - outer_wall, 620-inside_wall/2, inside_wall/2, 5280-boards]
     igrid_y = [porch_off, (chimney_y-porch_off), inside_wall/2, 900-inside_wall, inside_wall/2, 3220-boards]
     igrid_z = [1200.00, 2500.0]
     # first inside wall
     wall1, aabb1 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (0,2), (1,2)), holedef=HoleDef(1250, "9*19"))
-    wall2, aabb2 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (3,3), (4,3)))
-    wall3, aabb3 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,0), (2,1)))
-    wall4, aabb4 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,4), (2,5)))
+    wall2, aabb2 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (3,3), (4,3)), holedef=HoleDef(1600, "9*19"))
+    wall3, aabb3 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,1), (2,0)), holedef=HoleDef(1100, "9*19"))
+    wall4, aabb4 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (2,4), (2,5)), holedef=HoleDef(1000, "9*19"))
     return [(wall1, aabb1), (wall2, aabb2), (wall3, aabb3), (wall4, aabb4)]
 
 def create_inside_wall(wall_loop, holedef=None):
@@ -670,13 +675,14 @@ def create_inside_wall(wall_loop, holedef=None):
     for pp in pps_local:
         # both sides
         l, r = pp[0], pp[1]
-        l1 = l.CopyLinear(0,0,50+halfpro)
-        r1 = r.CopyLinear(0,0,50+halfpro)
-        l2 = l.CopyLinear(0,0,-50+halfpro)
-        r2 = r.CopyLinear(0,0,-50+halfpro)
+        board_strength = 22/2
+        l1 = l.CopyLinear(0,0,50+board_strength)
+        r1 = r.CopyLinear(0,0,50+board_strength)
+        l2 = l.CopyLinear(0,0,-(50+board_strength))
+        r2 = r.CopyLinear(0,0,-(50+board_strength))
         for p1,p2 in [(l1,r1),(l2,r2)]:
             to_world = transform.convertToGlobal([p1,p2])
-            stud_data.append(create_wood_at(to_world[0], to_world[1], "22*100", rotation))
+            stud_data.append(create_wood_at(to_world[0], to_world[1], "22*100", Rotation.FRONT))
     # aabb's
     aabb = None
     if holedef is not None:
@@ -716,16 +722,16 @@ if __name__ == "__main__":
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))
     roofangle = 36.64
-    porch_decline = 1660*math.tan(math.radians(roofangle))
+    porch_decline = porch_depth*math.tan(math.radians(roofangle))
     
     # todo: add centerline to master grid later..
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
-    grid_y = [0.00, 1660.00, 3800.00, 3800.00]
+    grid_y = [0.00, porch_depth, 3800.00, 3800.00]
     #grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
     grid_z = [0.00, 1000.00, 3850.00-porch_decline, porch_decline-150, 150, 3800*math.tan(math.radians(roofangle))]
     # harja
     #grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
-    centerline = [Point3(0, 1660.0 + 7600.0 / 2, 0), Point3(sum(grid_x), 1660.0 + 7600.0 / 2, 0)]
+    centerline = [Point3(0, porch_depth + 7600.0 / 2, 0), Point3(sum(grid_x), porch_depth + 7600.0 / 2, 0)]
     sockle = "800*200"
     footing = "200*500"
 
