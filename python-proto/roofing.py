@@ -7,11 +7,54 @@ from transformations import (projection_matrix,
 #from shapely.geometry import (box,
 #                              LinearRing)
 
+class RoofExpansionDefs( object ):
+    def __init__( self, left=None, right=None, down=None):
+        self._keys = {
+            "left": [0,-1,0],
+            "right": [0,1,0],
+            "down": [1,0,0],
+            }
+        self._expander = {
+            "left": left,
+            "right": right,
+            "down": down
+            }
+
+    def _get_key(self, key):
+        return self._keys[key]
+
+    def apply_expansion(self, open_loop):
+        ind = 0
+        for point in open_loop[:-1]:
+            toNext = point.GetVectorTo(open_loop[ind+1])
+            toNext.z = 0 # level out to xy-plane
+            # if vector is roof lape suuntainen, extrude
+            expand = None
+            for key, direction in self._keys.items():
+                if angle_between_vectors(toNext.ToArr(), direction, directed=True) < math.radians(1):
+                    expand = self._expander[key]
+                    break
+            #if angle_between_vectors(toNext.ToArr(), [0,-1,0], directed=True) < math.radians(1):
+            #    expand = Point3(-600, 0, 0)
+            #elif angle_between_vectors(toNext.ToArr(), [0,1,0], directed=True) < math.radians(1):
+            #    expand = Point3(600, 0, 0)
+            # paatyraystaat yli
+            if expand is not None:
+                open_loop[ind].Translate(expand)
+                open_loop[ind+1].Translate(expand)
+            ind += 1
+        
+
 class Roofing( object ):
     def __init__( self, section_name, chimney_spec):
         self.name = section_name
         self.chimney_world = chimney_spec
         self.roof_decs = []
+        self.default_expander = RoofExpansionDefs(left=Point3(-600, 0, 0), right=Point3(600, 0, 0))
+
+    #def set_expander(self, direction, vector):
+    #    self.default_expander
+
 
     def do_one_roof_face(self, section_name, face_polygon, high_point_actual):
         """ This is a geometry util func, Roofing will do the stuff.
@@ -64,21 +107,23 @@ class Roofing( object ):
             rr2 = rr
             roof_data.add_part_data(rr2[0], rr2[1], "22*50", Rotation.TOP)
         # then battens
-        ind = 0
-        for point in local_roof_poly[:-1]:
-            toNext = point.GetVectorTo(local_roof_poly[ind+1])
-            toNext.z = 0 # level out to xy-plane
-            # if vector is roof lape suuntainen, extrude
-            expand = None
-            if angle_between_vectors(toNext.ToArr(), [0,-1,0], directed=True) < math.radians(1):
-                expand = Point3(-600, 0, 0)
-            elif angle_between_vectors(toNext.ToArr(), [0,1,0], directed=True) < math.radians(1):
-                expand = Point3(600, 0, 0)
-            # paatyraystaat yli
-            if expand is not None:
-                local_roof_poly[ind].Translate(expand)
-                local_roof_poly[ind+1].Translate(expand)
-            ind += 1
+        expander = RoofExpansionDefs(left=Point3(-600, 0, 0), right=Point3(600, 0, 0))
+        expander.apply_expansion(local_roof_poly)
+        #ind = 0
+        #for point in local_roof_poly[:-1]:
+        #    toNext = point.GetVectorTo(local_roof_poly[ind+1])
+        #    toNext.z = 0 # level out to xy-plane
+        #    # if vector is roof lape suuntainen, extrude
+        #    expand = None
+        #    if angle_between_vectors(toNext.ToArr(), [0,-1,0], directed=True) < math.radians(1):
+        #        expand = Point3(-600, 0, 0)
+        #    elif angle_between_vectors(toNext.ToArr(), [0,1,0], directed=True) < math.radians(1):
+        #        expand = Point3(600, 0, 0)
+        #    # paatyraystaat yli
+        #    if expand is not None:
+        #        local_roof_poly[ind].Translate(expand)
+        #        local_roof_poly[ind+1].Translate(expand)
+        #    ind += 1
         one_face_batten_pairs = create_hatch(local_roof_poly, 350.0, first_offset=50-22, horizontal=True)
         # add battens
         for bb in one_face_batten_pairs:
