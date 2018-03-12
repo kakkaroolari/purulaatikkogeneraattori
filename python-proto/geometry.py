@@ -239,10 +239,10 @@ def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids
     return { 
         "section": name, 
         "parts": part_list, 
-        "planes": planes, 
-        "coordinate_system": csys, 
-        "cutobjects": solids,
-        "fitplanes": fits
+        "planes": remove_none_elements_from_list(planes), 
+        "coordinate_system": csys,
+        "cutobjects": remove_none_elements_from_list(solids),
+        "fitplanes": remove_none_elements_from_list(fits)
         }
 
 def generate_lower_reach(polygon, z_offset, mass_center=None):

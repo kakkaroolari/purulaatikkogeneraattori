@@ -109,6 +109,14 @@ def get_part_data(profile, rotation, points, material, ts_class=None):
         "klass": ts_class
     }
 
+def remove_none_elements_from_list(list_in):
+    if not list_in:
+        return None
+    shortened = [e for e in list_in if e is not None]
+    if 0 == len(shortened):
+        return None
+    return shortened
+
 class TransformationPlane(object):
     def __init__( self, origin, x_axis, y_axis ):
         self._origin = origin
