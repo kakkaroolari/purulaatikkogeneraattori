@@ -176,7 +176,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # inner walls
     inside_walls = create_inside()
-    inside_walls = []
+    #inside_walls = []
     #trace("iw: ", inside_walls)
 
     ## main json
@@ -651,7 +651,7 @@ def create_inside():
     inside_wall = 170 #100 + 2*boards
     porch_off = porch_depth + outer_wall
     igrid_x = [outer_wall, chimney_x - outer_wall, 620-inside_wall/2, inside_wall/2, 5280-boards]
-    igrid_y = [porch_off, (chimney_y-porch_off), inside_wall/2, 900-inside_wall, inside_wall/2, 3220-boards]
+    igrid_y = [porch_off, (chimney_y-porch_off), inside_wall/2, 900-inside_wall, inside_wall/2, 3520-boards]
     igrid_z = [1200.00, 2500.0]
     # first inside wall
     wall1, aabb1 = create_inside_wall(looper(igrid_x, igrid_y, igrid_z, (0,2), (1,2)), holedef=HoleDef(1250, "9*19"))
