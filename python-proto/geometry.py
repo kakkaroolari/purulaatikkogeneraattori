@@ -146,7 +146,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         }
 
     # corner boards
-    corner_boards = create_corner_boards(grid_x, grid_y, grid_z, cornerwoodcolor)
+    corner_boards = create_main_corners(grid_x, grid_y, grid_z, cornerwoodcolor)
+    corner_boards += create_porch_corners(pgrid_x, pgrid_y, pelevs_z, cornerwoodcolor)
 
     mass_center = centroid(master_polygon)
     # TODO: make the layers bottom up and increase z offset
@@ -175,6 +176,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # inner walls
     inside_walls = create_inside()
+    inside_walls = []
     #trace("iw: ", inside_walls)
 
     ## main json
@@ -300,16 +302,26 @@ def create_window_boxes(windows):
             windower.add_window(transform, low, high, rotation, win_def.multiframe())
     return aabbs, windower.get_framing_woods()
 
-#def _create_window_hole(distance_x, distance_y, 
-def create_corner_boards(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
+def create_main_corners(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
     corners = [
-        generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (0,1,3), (1,1,1)]),
+        #generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (0,1,3), (1,1,1)]),
         generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,1,3), (3,2,1)]),
         generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (3,3,3), (2,3,1)]),
         generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,3,3), (0,2,1)])
     ]
+    return create_corner_boards(corners, cornerwoodcolor, z_level)
+
+def create_porch_corners(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
+    corners = [
+        generate_loop(grid_x, grid_y, grid_z, [(0,0,1), (0,0,2), (1,0,1)]),
+        generate_loop(grid_x, grid_y, grid_z, [(2,0,1), (2,0,2), (2,1,1)])
+    ]
+    return create_corner_boards(corners, cornerwoodcolor, z_level)
+
+#def _create_window_hole(distance_x, distance_y, 
+def create_corner_boards(corner_loops, cornerwoodcolor, z_level=44):
     corner_woods = []
-    for corner_tri in corners:
+    for corner_tri in corner_loops:
         #trace("corner tri: ", corner_tri)
         # create 2d coord sys
         height = corner_tri[1].z - corner_tri[0].z
