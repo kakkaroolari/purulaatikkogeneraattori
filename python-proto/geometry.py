@@ -127,16 +127,22 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        #"paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,3),(0,3,3)],         defs0),
-        #"paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
+        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,3),(0,3,3)],         defs0),
+        "paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
         #"vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
         "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,4),(2,1,4)],         defs1),
-        #"etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,3),(3,1,3)],         defs2),
-        #"etela_yla":    clad_def([(3,1,3),(3,3,3),(3,3,4),(3,2,5),(3,1,4)], None, usefits=True),
-        #"takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,4),(3,3,4)],         defs3),
+        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,3),(3,1,3)],         defs2),
+        "etela_yla":    clad_def([(3,1,3),(3,3,3),(3,3,4),(3,2,5),(3,1,4)], None, usefits=True),
+        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,4),(3,3,4)],         defs3),
         #"kuisti_vas":   clad_def([(1,1,1),(1,0,1),(1,0,2),(1,1,4)],         None, usefits=True),
         #"kuisti_etu":   clad_def([(1,0,1),(2,0,1),(2,0,2),(1,0,2)],         None, usefits=True),
         #"kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
+        }
+
+    porch_facades = {
+        "kuisti_vas":   clad_def([(0,1,1),(0,0,1),(0,0,2),(0,1,2)],         None),
+        "kuisti_etu":   clad_def([(0,0,1),(2,0,1),(2,0,2),(1,0,3),(0,0,2)], None, usefits=True),
+        "kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,2),(2,0,2)],         None)
         }
 
     # corner boards
@@ -202,15 +208,18 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         #combined_data.append(named_section(stf.name, stf.get_part_data(), planes=cuts, fits=fits, solids=window_cuts))
 
     # cladding boards
-    for key, value in board_areas.items():
-        segment_name = "cladding_" + key
-        trace("Creating cladding for: ", segment_name)
-        segment_polygon = value['poly']
-        segment_windows = value['windows']
-        segment_isfitted = value['usefits']
-        cladding_loop = generate_loop(grid_x, grid_y, grid_z, segment_polygon)
-        wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
-        combined_data.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, planes=fittings, fits=fittings))
+    append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
+    append_cladding_data(porch_facades, combined_data, pgrid_x, pgrid_y, pelevs_z, fieldsaw, [])
+
+    #for key, value in board_areas.items():
+    #    segment_name = "cladding_" + key
+    #    trace("Creating cladding for: ", segment_name)
+    #    segment_polygon = value['poly']
+    #    segment_windows = value['windows']
+    #    segment_isfitted = value['usefits']
+    #    cladding_loop = generate_loop(grid_x, grid_y, grid_z, segment_polygon)
+    #    wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
+    #    combined_data.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, planes=fittings, fits=fittings))
 
     #trace("roof_woody: ", roof_woody.get_roofs_faces(), porch_roofer.get_roofs_faces())
     for roof_face in roof_woody.get_roofs_faces() + porch_roofer.get_roofs_faces():
@@ -230,6 +239,17 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         json.dump(combined_data, jsonfile, cls=MyEncoder, indent=2)
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
+
+def append_cladding_data(clad_defs, append_to, gridx, gridy, gridz, fieldsaw, window_cuts):
+    for key, value in clad_defs.items():
+        segment_name = "cladding_" + key
+        trace("Creating cladding for: ", segment_name)
+        segment_polygon = value['poly']
+        segment_windows = value['windows']
+        segment_isfitted = value['usefits']
+        cladding_loop = generate_loop(gridx, gridy, gridz, segment_polygon)
+        wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
+        append_to.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, planes=fittings, fits=fittings))
 
 def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids=None, fits=None):
     # todo: can add assembly meta, classes etc.
@@ -372,7 +392,7 @@ def generate_main_roof(grid_x, grid_y, grid_z, chimney_pipe):
     #trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs", chimney_pipe)
     roofer.do_one_roof_face("lape_1", roof_polygon_1, centerline[0])
-    #roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
+    roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
     # todo: hack, return face1 plane outside
 
     return roofer
