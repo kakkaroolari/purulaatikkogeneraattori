@@ -6,7 +6,7 @@ import pprint
 from point import Point3
 from stiffeners import Stiffener
 from cladding import Cladding
-from roofing import Roofing
+from roofing import Roofing, RoofExpansionDefs
 from windowframer import WindowFramer, windowDef, HoleDef
 import itertools #import izip
 import json
@@ -388,7 +388,7 @@ def create_porch_roof(pgrid_x, pgrid_y, pgrid_z, main_roofer):
     if rooftip is not None:
         maxy = toDistances(pgrid_y)[-1]
         max2y = rooftip[1]
-        trace("pw22: ", maxy, "rt: ", rooftip)
+        #trace("pw22: ", maxy, "rt: ", rooftip)
         ylastdist = max2y - maxy, 
         pgrid_y.append(ylastdist)
 
@@ -399,9 +399,19 @@ def create_porch_roof(pgrid_x, pgrid_y, pgrid_z, main_roofer):
         (1,0,-2)]
     #trace("pw3: ", pgrid_x, pgrid_y, pgrid_z)
     roof_polygon_1 = generate_loop(pgrid_x, pgrid_y, pgrid_z, roof_tuples_1)
+    roof_tuples_2 = [(1,0,-2),
+        (2,0,-2),
+        (2,-1,-2),
+        (1,-1,-2)]
+    #trace("pw3: ", pgrid_x, pgrid_y, pgrid_z)
+    roof_polygon_2 = generate_loop(pgrid_x, pgrid_y, pgrid_z, roof_tuples_2)
+
     roofer = Roofing("porch_rafters", None)
-    roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0])
-    #roofer.do_one_roof_face("lape_2", roof_polygon_2, centerline[1])
+
+    expansion1 = RoofExpansionDefs(right=Point3(600, 0, 0))
+    expansion2 = RoofExpansionDefs(left=Point3(-600, 0, 0))
+    roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0], main_expansion=expansion1)
+    roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
     # todo: hack, return face1 plane outside
 
     return roofer

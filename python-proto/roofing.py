@@ -8,16 +8,17 @@ from transformations import (projection_matrix,
 #                              LinearRing)
 
 class RoofExpansionDefs( object ):
-    def __init__( self, left=None, right=None, down=None):
+    def __init__( self, left=None, right=None, down=None, up=None):
         self._keys = {
             "left": [0,-1,0],
             "right": [0,1,0],
-            "down": [1,0,0],
+            "down": [1,0,0]
             }
         self._expander = {
             "left": left,
             "right": right,
-            "down": down
+            "down": down,
+            "up": up,
             }
 
     def _get_key(self, key):
@@ -34,15 +35,15 @@ class RoofExpansionDefs( object ):
                 if angle_between_vectors(toNext.ToArr(), direction, directed=True) < math.radians(1):
                     expand = self._expander[key]
                     break
-            #if angle_between_vectors(toNext.ToArr(), [0,-1,0], directed=True) < math.radians(1):
-            #    expand = Point3(-600, 0, 0)
-            #elif angle_between_vectors(toNext.ToArr(), [0,1,0], directed=True) < math.radians(1):
-            #    expand = Point3(600, 0, 0)
             # paatyraystaat yli
             if expand is not None:
                 open_loop[ind].Translate(expand)
                 open_loop[ind+1].Translate(expand)
             ind += 1
+        if self._expander["up"] is not None:
+            open_loop[0].Translate(self._expander["up"])
+            open_loop[-1].Translate(self._expander["up"])
+
         
 
 class Roofing( object ):
@@ -56,7 +57,7 @@ class Roofing( object ):
     #    self.default_expander
 
 
-    def do_one_roof_face(self, section_name, face_polygon, high_point_actual):
+    def do_one_roof_face(self, section_name, face_polygon, high_point_actual, main_expansion=None):
         """ This is a geometry util func, Roofing will do the stuff.
             order is important. This comment is utter bollocks.
             todo: lape name
@@ -107,23 +108,9 @@ class Roofing( object ):
             rr2 = rr
             roof_data.add_part_data(rr2[0], rr2[1], "22*50", Rotation.TOP)
         # then battens
-        expander = RoofExpansionDefs(left=Point3(-600, 0, 0), right=Point3(600, 0, 0))
-        expander.apply_expansion(local_roof_poly)
-        #ind = 0
-        #for point in local_roof_poly[:-1]:
-        #    toNext = point.GetVectorTo(local_roof_poly[ind+1])
-        #    toNext.z = 0 # level out to xy-plane
-        #    # if vector is roof lape suuntainen, extrude
-        #    expand = None
-        #    if angle_between_vectors(toNext.ToArr(), [0,-1,0], directed=True) < math.radians(1):
-        #        expand = Point3(-600, 0, 0)
-        #    elif angle_between_vectors(toNext.ToArr(), [0,1,0], directed=True) < math.radians(1):
-        #        expand = Point3(600, 0, 0)
-        #    # paatyraystaat yli
-        #    if expand is not None:
-        #        local_roof_poly[ind].Translate(expand)
-        #        local_roof_poly[ind+1].Translate(expand)
-        #    ind += 1
+        if main_expansion is None:
+            main_expansion = self.default_expander
+        main_expansion.apply_expansion(local_roof_poly)
         one_face_batten_pairs = create_hatch(local_roof_poly, 350.0, first_offset=50-22, horizontal=True)
         # add battens
         for bb in one_face_batten_pairs:
@@ -169,24 +156,11 @@ class Roofing( object ):
         # then battens
         ind = 0
         local_roof_poly = [p.Clone() for p in polygon] #.copy()
-        for point in local_roof_poly[:-1]:
-            toNext = point.GetVectorTo(local_roof_poly[ind+1])
-            toNext.z = 0 # level out to xy-plane
-            # if vector is roof lape suuntainen, extrude
-            expand = None
-            if angle_between_vectors(toNext.ToArr(), [0,-1,0], directed=True) < math.radians(1):
-                expand = Point3(-extend_left_right_abs, 0, 0)
-            elif angle_between_vectors(toNext.ToArr(), [0,1,0], directed=True) < math.radians(1):
-                expand = Point3(extend_left_right_abs, 0, 0)
-            elif angle_between_vectors(toNext.ToArr(), [1,0,0], directed=True) < math.radians(1):
-                expand = Point3(0, extend_down, 0)
-            # paatyraystaat yli
-            if expand is not None:
-                local_roof_poly[ind].Translate(expand)
-                local_roof_poly[ind+1].Translate(expand)
-            ind += 1
-        local_roof_poly[0].Translate(0, extend_up, 0)
-        local_roof_poly[-1].Translate(0, extend_up, 0)
+        expander = RoofExpansionDefs(left=Point3(-extend_left_right_abs, 0, 0),
+                                     right=Point3(extend_left_right_abs, 0, 0),
+                                     down=Point3(0, extend_down, 0),
+                                     up=Point3(0, extend_up, 0))
+        expander.apply_expansion(local_roof_poly)
         # todo: closedloop or not..
         steel_point_pairs = create_hatch(local_roof_poly, profile_width, profile_width + 20, exact=True)
         decking_data = []
