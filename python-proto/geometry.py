@@ -207,7 +207,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     for stf in stiffeners + porch_stiffeners:
         cuts = stf.get_cut_planes()
         fits = stf.get_fit_planes()
-        #combined_data.append(named_section(stf.name, stf.get_part_data(), planes=cuts, fits=fits, solids=window_cuts))
+        combined_data.append(named_section(stf.name, stf.get_stiffener_data(), planes=cuts, fits=fits, solids=window_cuts))
 
     # cladding boards
     append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
@@ -769,7 +769,7 @@ if __name__ == "__main__":
     porch_decline = porch_depth*math.tan(math.radians(roofangle))
     
     # todo: add centerline to master grid later..
-    grid_x = [0.00, 750.00, 3300.00, 5060.00]
+    grid_x = [0.00, 2025.00, 2025.00, 5060.00]
     grid_y = [0.00, porch_depth, 3800.00, 3800.00]
     #grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
     grid_z = [0.00, 1000.00, 3700, 150, 2800]

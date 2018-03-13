@@ -13,7 +13,7 @@ class Stiffener( object ):
         self.planes = []
         self.biplanes = []
 
-    def get_part_data(self):
+    def get_stiffener_data(self):
         parts = []
         for ss,tt in self.precut_stiffeners:
             parts.append(create_wood_at(ss,tt, "22*100", Rotation.FRONT))
