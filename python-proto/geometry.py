@@ -121,19 +121,19 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     trace("Holes for: ", len(window_cuts), " windows.", window_cuts)
 
     # chimney pipe
-    section_cut = generate_loop(grid_x, grid_y, grid_z, [(0,1,0), (0,3,0), (0,3,4)])
+    section_cut = generate_loop(grid_x, grid_y, grid_z, [(0,1,0), (0,3,0), (0,3,3)])
     chimney_parts, pipe_cut = create_chimneypipe(section_cut, x=chimney_x, y=chimney_y, profile="620*900", roofangle=roof_angle)
 
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,3),(0,3,3)],         defs0),
-        "paaty_kolmio": clad_def([(0,3,3),(0,1,3),(0,1,4),(0,2,5),(0,3,4)], None, usefits=True),
+        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,2),(0,3,2)],         defs0),
+        "paaty_kolmio": clad_def([(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)], None, usefits=True),
         #"vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
-        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,4),(2,1,4)],         defs1),
-        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,3),(3,1,3)],         defs2),
-        "etela_yla":    clad_def([(3,1,3),(3,3,3),(3,3,4),(3,2,5),(3,1,4)], None, usefits=True),
-        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,4),(3,3,4)],         defs3),
+        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,3),(2,1,3)],         defs1),
+        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,2),(3,1,2)],         defs2),
+        "etela_yla":    clad_def([(3,1,2),(3,3,2),(3,3,3),(3,2,4),(3,1,3)], None, usefits=True),
+        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,3),(3,3,3)],         defs3),
         #"kuisti_vas":   clad_def([(1,1,1),(1,0,1),(1,0,2),(1,1,4)],         None, usefits=True),
         #"kuisti_etu":   clad_def([(1,0,1),(2,0,1),(2,0,2),(1,0,2)],         None, usefits=True),
         #"kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
@@ -384,23 +384,23 @@ def create_chimneypipe(section_cut, x, y, profile, roofangle):
 
 def generate_main_roof(grid_x, grid_y, grid_z, chimney_pipe):
     # xy plane
-    roof_tuples_1 = [(0,2,4), # with porch roof extension
-        (0,1,4),
+    roof_tuples_1 = [(0,2,3), # with porch roof extension
+        (0,1,3),
         #(1,1,4),
         #(1,0,4),
         #(2,0,4),
         #(2,1,4),
-        (3,1,4),
-        (3,2,4)]
+        (3,1,3),
+        (3,2,3)]
     roof_polygon_1 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_1)
     #trace("roof poly 1: ", roof_polygon_1)
-    roof_tuples_2 = [(3,2,4),
-        (3,3,4),
-        (0,3,4),
-        (0,2,4)]
+    roof_tuples_2 = [(3,2,3),
+        (3,3,3),
+        (0,3,3),
+        (0,2,3)]
     roof_polygon_2 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_2)
     # centerline at highest elevation
-    centerline = generate_loop(grid_x, grid_y, grid_z, [(0,2,5),(3,2,5)])
+    centerline = generate_loop(grid_x, grid_y, grid_z, [(0,2,4),(3,2,4)])
     #trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs", chimney_pipe)
     roofer.do_one_roof_face("lape_1", roof_polygon_1, centerline[0])
@@ -772,7 +772,8 @@ if __name__ == "__main__":
     grid_x = [0.00, 750.00, 3300.00, 5060.00]
     grid_y = [0.00, porch_depth, 3800.00, 3800.00]
     #grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
-    grid_z = [0.00, 1000.00, 3850.00-porch_decline, porch_decline-150, 150, 3800*math.tan(math.radians(roofangle))]
+    grid_z = [0.00, 1000.00, 3700, 150, 2800]
+    trace("roof tip error:", int(round(abs(3800*math.tan(math.radians(roofangle))-grid_z[-1]))), "mm.")
     # harja
     #grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
     centerline = [Point3(0, porch_depth + 7600.0 / 2, 0), Point3(sum(grid_x), porch_depth + 7600.0 / 2, 0)]
