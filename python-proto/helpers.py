@@ -273,7 +273,7 @@ def create_cut_plane(point1, point2, normal):
 def to_planedef(point1, point2=None, point3=None):
     try:
        p1, p2, p3 = point1[0], point1[1], point1[2]
-       trace("p1p2n: ", p1, p2, p3)
+       #trace("p1p2n: ", p1, p2, p3)
     except TypeError:
        p1, p2, p3 = point1, point2, point3
        pass

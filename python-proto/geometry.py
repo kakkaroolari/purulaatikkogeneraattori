@@ -208,8 +208,8 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         combined_data.append(named_section(stf.name, stf.get_stiffener_data(), planes=cuts, fits=fits, solids=window_cuts))
 
     # cladding boards
-    append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
-    append_cladding_data(porch_facades, combined_data, grid_x, grid_y, pelevs_z, fieldsaw, [])
+    #append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
+    #append_cladding_data(porch_facades, combined_data, grid_x, grid_y, pelevs_z, fieldsaw, [])
 
     #for key, value in board_areas.items():
     #    segment_name = "cladding_" + key
@@ -441,6 +441,7 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
         xyplane_elevation = roof_polygon_1[0].z
         #highpoint = centerline[0].
         unadjusted_y = centerline[0].y
+        #unadjusted_yr = centerline[1].y
         #centerline[0] = rooftip.Clone()
         # lape 1
         rooftip.z = xyplane_elevation
@@ -450,8 +451,8 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
         lape2p_3 = Point3(lape2r.x, unadjusted_y, xyplane_elevation)
         lape2p_2 = Point3(lape2r.x, rooftip.y, xyplane_elevation)
         roof_polygon_1 = [rooftip, lape1p2, lape1p3] + roof_polygon_1[1:]
-        roof_polygon_2 = roof_polygon_1[:-1] + [lape2p_3, lape2p_2]
-        trace("roof_polygon_1: ", roof_polygon_1)
+        roof_polygon_2 = roof_polygon_2[:-1] + [lape2p_3, lape2p_2, rooftip]
+        trace("roof_polygon_2: ", roof_polygon_2)
         trace("centerline: ", centerline)
         #pgrid_y.append(ylastdist)
 
@@ -459,8 +460,8 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
 
     expansion1 = RoofExpansionDefs(right=Point3(600, 0, 0))
     expansion2 = RoofExpansionDefs(left=Point3(-600, 0, 0))
-    roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0], oin=3, main_expansion=expansion1)
-    #roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
+    #roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0], oin=3, main_expansion=expansion1)
+    roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
     # todo: hack, return face1 plane outside
 
     return roofer
