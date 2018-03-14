@@ -225,6 +225,11 @@ class Point3( object ):
         #print("np.arr:", isect)
         return Point3(isect[0], isect[1], isect[2])
 
+    def FromArr(arr):
+        if arr is None:
+            return None
+        return Point3(arr[0], arr[1], arr[2])
+
 # intersection function
 def isect_line_plane_v3(p0, p1, p_co, p_no, epsilon=1e-6):
     """

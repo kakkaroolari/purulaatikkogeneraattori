@@ -89,13 +89,11 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     #trace("pw: ", porch_width)
     porchroofangle = roofangle
     pelevs_z = [0.00, 1000.00, 3000, (porch_width/2)*math.tan(math.radians(porchroofangle))]
-    pgrid_x = [0.00, porch_width/2, porch_width/2]
-    pgrid_y = [0.00, porch_depth]
     porch = [(0,1),
         (0,0),
         (2,0),
         (2,1)]
-    porch_polygon = generate_loop(pgrid_x, pgrid_y, None, porch)
+    porch_polygon = generate_loop(grid_x, grid_y, None, porch)
     #get_plane_data
 
     high_pairs1 = [(0,1),
@@ -147,7 +145,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # corner boards
     corner_boards = create_main_corners(grid_x, grid_y, grid_z, cornerwoodcolor)
-    corner_boards += create_porch_corners(pgrid_x, pgrid_y, pelevs_z, cornerwoodcolor)
+    corner_boards += create_porch_corners(grid_x, grid_y, pelevs_z, cornerwoodcolor)
 
     mass_center = centroid(master_polygon)
     # TODO: make the layers bottom up and increase z offset
@@ -172,7 +170,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     lower_reach += generate_lower_reach(porch_polygon, toDistances(pelevs_z)[1])
     higher_reach += generate_lower_reach(porch_polygon, toDistances(pelevs_z)[2])
     wall_studs += generate_wall_studs(porch_polygon, toDistances(pelevs_z)[1], pelevs_z[2]-100)
-    porch_roofer = create_porch_roof(pgrid_x, pgrid_y, pelevs_z, roof_woody)
+    porch_roofer = create_porch_roof(grid_x, grid_y, pelevs_z, roof_woody)
 
     # inner walls
     inside_walls = create_inside()
@@ -211,7 +209,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # cladding boards
     append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
-    append_cladding_data(porch_facades, combined_data, pgrid_x, pgrid_y, pelevs_z, fieldsaw, [])
+    append_cladding_data(porch_facades, combined_data, grid_x, grid_y, pelevs_z, fieldsaw, [])
 
     #for key, value in board_areas.items():
     #    segment_name = "cladding_" + key
@@ -409,20 +407,20 @@ def generate_main_roof(grid_x, grid_y, grid_z, chimney_pipe):
 
     return roofer
 
-def create_porch_roof(pgrid_x, pgrid_y, pgrid_z, main_roofer):
+def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
     # isect porch roof to main roof: p0, p1, origo, normal
+    pgrid_x = grid_x[:3]
+    pgrid_y = grid_y[:2]
     centerline = generate_loop(pgrid_x, pgrid_y, pgrid_z, [(1,1,-1),(1,0,-1)])
     pco, pno = main_roofer.roof_decs[0].get_plane_data()
     p1 = centerline[0].ToArr()
     p2 = centerline[1].ToArr()
+    pl = generate_loop(pgrid_x, pgrid_y, pgrid_z, [(0,1,2)])
+    pr = generate_loop(pgrid_x, pgrid_y, pgrid_z, [(2,1,2)])
     #trace("wtf: ", p1,p2,pco,pno)
-    rooftip = None #isect_line_plane_v3(p1,p2,pco,pno)
-    if rooftip is not None:
-        maxy = toDistances(pgrid_y)[-1]
-        max2y = rooftip[1]
-        #trace("pw22: ", maxy, "rt: ", rooftip)
-        ylastdist = max2y - maxy, 
-        pgrid_y.append(ylastdist)
+    rooftip = Point3.FromArr(isect_line_plane_v3(p1,p2,pco,pno))
+    lape1l = Point3.FromArr(isect_line_plane_v3(p1,pl[0].ToArr(),pco,pno))
+    lape2r = Point3.FromArr(isect_line_plane_v3(p1,pr[0].ToArr(),pco,pno))
 
     # xy plane
     roof_tuples_1 = [(1,-1,-2),
@@ -438,12 +436,31 @@ def create_porch_roof(pgrid_x, pgrid_y, pgrid_z, main_roofer):
     #trace("pw3: ", pgrid_x, pgrid_y, pgrid_z)
     roof_polygon_2 = generate_loop(pgrid_x, pgrid_y, pgrid_z, roof_tuples_2)
 
+    if rooftip is not None and lape1l is not None and lape2r is not None:
+        #dist_ytop = rooftip.distFrom(centerline[0]
+        xyplane_elevation = roof_polygon_1[0].z
+        #highpoint = centerline[0].
+        unadjusted_y = centerline[0].y
+        #centerline[0] = rooftip.Clone()
+        # lape 1
+        rooftip.z = xyplane_elevation
+        lape1p2 = Point3(lape1l.x, rooftip.y, xyplane_elevation)
+        lape1p3 = Point3(lape1l.x, unadjusted_y, xyplane_elevation)
+        # lape 2
+        lape2p_3 = Point3(lape2r.x, unadjusted_y, xyplane_elevation)
+        lape2p_2 = Point3(lape2r.x, rooftip.y, xyplane_elevation)
+        roof_polygon_1 = [rooftip, lape1p2, lape1p3] + roof_polygon_1[1:]
+        roof_polygon_2 = roof_polygon_1[:-1] + [lape2p_3, lape2p_2]
+        trace("roof_polygon_1: ", roof_polygon_1)
+        trace("centerline: ", centerline)
+        #pgrid_y.append(ylastdist)
+
     roofer = Roofing("porch_rafters", None)
 
     expansion1 = RoofExpansionDefs(right=Point3(600, 0, 0))
     expansion2 = RoofExpansionDefs(left=Point3(-600, 0, 0))
-    roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0], main_expansion=expansion1)
-    roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
+    roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0], oin=3, main_expansion=expansion1)
+    #roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
     # todo: hack, return face1 plane outside
 
     return roofer
@@ -773,7 +790,7 @@ if __name__ == "__main__":
     grid_y = [0.00, porch_depth, 3800.00, 3800.00]
     #grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
     grid_z = [0.00, 1000.00, 3700, 150, 2800]
-    trace("roof tip error:", int(round(abs(3800*math.tan(math.radians(roofangle))-grid_z[-1]))), "mm.")
+    trace("roof tip error: ~", int(round(abs(3800*math.tan(math.radians(roofangle))-grid_z[-1]))), "mm.")
     # harja
     #grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
     centerline = [Point3(0, porch_depth + 7600.0 / 2, 0), Point3(sum(grid_x), porch_depth + 7600.0 / 2, 0)]

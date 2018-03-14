@@ -57,25 +57,25 @@ class Roofing( object ):
     #    self.default_expander
 
 
-    def do_one_roof_face(self, section_name, face_polygon, high_point_actual, main_expansion=None):
+    def do_one_roof_face(self, section_name, face_polygon, high_point_actual, oin=1, main_expansion=None):
         """ This is a geometry util func, Roofing will do the stuff.
             order is important. This comment is utter bollocks.
             todo: lape name
         """
-        oho = face_polygon[0].Clone()
+        #oho = face_polygon[0].Clone()
         # first lape (xy plane)
-        direction = face_polygon[0].GetVectorTo(face_polygon[1])
+        direction = face_polygon[oin-1].GetVectorTo(face_polygon[oin])
         direction = direction.Normalize(600)
         # fit plane world - roof center
         #third = high_point_actual.GetVectorTo(face_polygon[1])
         #B = face_polygon[0].GetVectorTo(face_polygon[-1])
         #A = face_polygon[0].GetVectorTo(high_point_actual)
-        fit_plane_world = [face_polygon[0].Clone(), face_polygon[-1].Clone(), high_point_actual.Clone()]
+        fit_plane_world = [face_polygon[0].Clone(), face_polygon[-1].Clone(), face_polygon[0].CopyLinear(0,0,1000)]
         trace("fpw: ", fit_plane_world)
         # now we should project this in actual roof plane (xyz)
-        origo = face_polygon[1].Clone()
+        origo = face_polygon[oin].Clone()
         Y = origo.GetVectorTo(high_point_actual)
-        X = origo.GetVectorTo(face_polygon[2].Clone())
+        X = origo.GetVectorTo(face_polygon[oin+1].Clone())
         N = Point3.Cross(X, Y).Normalize()
         #trace("norml: ", N)
         for point in face_polygon[1:-1]:

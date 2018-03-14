@@ -294,6 +294,8 @@ def get_differences(polygon):
     diffs = page.difference(wall_polygon)
     #trace("diffs: ", diffs)
     aabbs = []
+    if isinstance(diffs, Polygon):
+        diffs.geoms = [diffs]
     for polygons in diffs.geoms:
         bound_box = polygons.bounds
         minx, miny, maxx, maxy = bound_box
@@ -313,6 +315,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         first_offset: like 50 mm. from corner (nurkkalaudat mahtuu)
     """
     # todo actual polygon instead of a 2d bounding box? if needed
+    trace("polpol: ", polygon)
     min_x, min_y, max_x, max_y = bounding_box(polygon)
 
     coords = []
@@ -387,8 +390,8 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         coll = linestr.intersection(wall_polygon)
         #trace("col: ", coll, source)
         #try:
-        #if isinstance(coll, MultiPoint):# and 2 == len(coll):
-        #    coll = [coll.geoms]
+        if isinstance(coll, Point):
+            coll = [source]
         if isinstance(coll, LineString):# and 2 == len(coll):
             coll = [coll.coords]
         if isinstance(coll, MultiLineString) or isinstance(coll, MultiPoint):# and 2 == len(coll):
