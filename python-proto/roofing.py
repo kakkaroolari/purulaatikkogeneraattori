@@ -57,41 +57,49 @@ class Roofing( object ):
     #    self.default_expander
 
 
-    def do_one_roof_face(self, section_name, face_polygon, high_point_actual, oin=1, main_expansion=None):
+    def do_one_roof_face(self, section_name, face_polygon, high_point_actual, dirstart=None, main_expansion=None):
         """ This is a geometry util func, Roofing will do the stuff.
             order is important. This comment is utter bollocks.
             todo: lape name
         """
-        #oho = face_polygon[0].Clone()
         # first lape (xy plane)
-        direction = face_polygon[oin-1].GetVectorTo(face_polygon[oin])
+        if dirstart is None:
+            dirstart = face_polygon[0]
+        direction = dirstart.GetVectorTo(face_polygon[1])
+        #direction = face_polygon[oin-1].GetVectorTo(face_polygon[oin])
         direction = direction.Normalize(600)
         # fit plane world - roof center
-        #third = high_point_actual.GetVectorTo(face_polygon[1])
-        #B = face_polygon[0].GetVectorTo(face_polygon[-1])
-        #A = face_polygon[0].GetVectorTo(high_point_actual)
         fit_plane_world = [face_polygon[0].Clone(), face_polygon[-1].Clone(), face_polygon[0].CopyLinear(0,0,1000)]
-        trace("fpw: ", fit_plane_world)
+        #trace("fpw: ", fit_plane_world)
         # now we should project this in actual roof plane (xyz)
-        origo = face_polygon[oin].Clone()
+        origo = face_polygon[1].Clone()
         Y = origo.GetVectorTo(high_point_actual)
-        X = origo.GetVectorTo(face_polygon[oin+1].Clone())
+        X = origo.GetVectorTo(face_polygon[2].Clone())
         N = Point3.Cross(X, Y).Normalize()
-        #trace("norml: ", N)
-        for point in face_polygon[1:-1]:
+        trace("norml: ", X,Y,N)
+        #dotlen = Point3.Dot(face_polygon[0].GetVectorTo(face_polygon[1]), direction)
+        firstside = face_polygon[0].GetVectorTo(face_polygon[1])
+        coslen = 600 / math.cos(angle_between_vectors(firstside.ToArr(), direction.ToArr()))
+        trace("coslen: ", coslen)
+        angular = firstside.Clone().Normalize(coslen)
+        face_polygon[1].Translate(angular)
+        for point in face_polygon[2:-1]:
             # move raystas 600 mm outwards
             # TODO: This shit makes holppa==125.00 mm brake
             point.Translate(direction)
+
         # tilt roof plane from xy plane to actual angle
         mat = projection_matrix(origo.ToArr(), N.ToArr(), direction=[0,0,1])
         geomPlane = TransformationPlane(origo, X, Y)
         transistor = Transformer(geomPlane) # geom plane is not used in convert_by_matrix
+        trace("facepoly:", face_polygon)
         points_in_correct_plane = Transformer.convert_by_matrix(face_polygon, mat)
+        trace("picp:", points_in_correct_plane)
         # create part data object
         roof_data = _RoofDeck(section_name, geomPlane)
         # now start creating hatch
         local_roof_poly = transistor.convertToLocal(points_in_correct_plane)
-        #trace("local pts: ", local_points)
+        #trace("local pts: ", local_roof_poly)
         holppa = 125.0
         one_face_point_pairs = create_hatch(local_roof_poly, 900.0, holppa, holppa)
         # convert back to global csys
@@ -187,11 +195,22 @@ class Roofing( object ):
             aabb[0].Translate(0, -50, 0)
             cutAABBs.append(create_cut_aabb(aabb))
         # last cut is plane in the far end
-        cutPlane = create_cut_plane(polygon[-1], polygon[-2], Point3(1,0,0))
-        #min_x, min_y, max_x, max_y = bounding_box(polygon)
-        #page = box(min_x, min_y, max_x, max_y)
-        #wall_polygon = LinearRing([(p.x,p.y) for p in polygon])
-        return decking_data, cutAABBs, [cutPlane], side_steels
+        cutPlanes = []
+        # check if either side diagonal
+        #angle_between_vectors
+        start_edge = [polygon[1], polygon[0]]
+        end_edge = [polygon[-2], polygon[-1]]
+        for edge in [start_edge, end_edge]:
+            edge_dir = edge[0].GetVectorTo(edge[1])
+            zpoint = edge[0].CopyLinear(0,0,1000)
+            z_dir = edge[0].GetVectorTo(zpoint)
+            normal = Point3.Cross(z_dir, edge_dir)
+            if angle_between_vectors(edge_dir.ToArr(), [0,1,0], directed=False) > math.radians(1):
+                cutAABBs = []
+                cutPlanes.append(create_cut_plane(edge[0], edge[1], normal))
+        #if 0 == len(cutPlanes):
+        cutPlanes.append(create_cut_plane(polygon[-1], polygon[-2], Point3(1,0,0)))
+        return decking_data, cutAABBs, cutPlanes, side_steels
 
     def get_roofs_faces(self):
         return self.roof_decs
