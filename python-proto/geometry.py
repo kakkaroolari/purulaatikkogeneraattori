@@ -88,7 +88,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     porch_width = toDistances(grid_x)[2]
     #trace("pw: ", porch_width)
     porchroofangle = roofangle
-    pelevs_z = [0.00, 1000.00, 3000, (porch_width/2)*math.tan(math.radians(porchroofangle))]
+    #pelevs_z = [0.00, 1000.00, 3000, (porch_width/2)*math.tan(math.radians(porchroofangle))]
+    pelevs_z = [z for z in grid_z]
+    pelevs_z[-1] = (porch_width/2)*math.tan(math.radians(porchroofangle))
     porch = [(0,1),
         (0,0),
         (2,0),
@@ -138,9 +140,9 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
         }
 
     porch_facades = {
-        "kuisti_vas":   clad_def([(0,1,1),(0,0,1),(0,0,2),(0,1,2)],         None),
-        "kuisti_etu":   clad_def([(0,0,1),(2,0,1),(2,0,2),(1,0,3),(0,0,2)], None, usefits=True),
-        "kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,2),(2,0,2)],         None)
+        "kuisti_vas":   clad_def([(0,1,1),(0,0,1),(0,0,3),(0,1,3)],         None),
+        "kuisti_etu":   clad_def([(0,0,1),(2,0,1),(2,0,3),(1,0,4),(0,0,3)], None, usefits=True),
+        "kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,3),(2,0,3)],         None)
         }
 
     # corner boards
@@ -199,17 +201,19 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # stiffener experiment
     stiffeners = stiffen_wall("mainwall", master_polygon, 1000.0, 3850, roof_angle, mass_center)
-    porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, 3850-porch_decline, roof_angle, mass_center)
+    # todo: 
+    porch_height = pelevs_z[-2] + 100
+    porch_stiffeners = stiffen_wall("porch", porch_polygon, 1000.0, porch_height, roof_angle, mass_center)
     
 
     for stf in stiffeners + porch_stiffeners:
         cuts = stf.get_cut_planes()
         fits = stf.get_fit_planes()
-        combined_data.append(named_section(stf.name, stf.get_stiffener_data(), planes=cuts, fits=fits, solids=window_cuts))
+        #combined_data.append(named_section(stf.name, stf.get_stiffener_data(), planes=cuts, fits=fits, solids=window_cuts))
 
     # cladding boards
-    #append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
-    #append_cladding_data(porch_facades, combined_data, grid_x, grid_y, pelevs_z, fieldsaw, [])
+    append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
+    append_cladding_data(porch_facades, combined_data, grid_x, grid_y, pelevs_z, fieldsaw, [])
 
     #for key, value in board_areas.items():
     #    segment_name = "cladding_" + key
@@ -303,9 +307,9 @@ def create_window_boxes(windows):
 def create_main_corners(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
     corners = [
         #generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (0,1,3), (1,1,1)]),
-        generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,1,3), (3,2,1)]),
-        generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (3,3,3), (2,3,1)]),
-        generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,3,3), (0,2,1)])
+        generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,1,2), (3,2,1)]),
+        generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (3,3,2), (2,3,1)]),
+        generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,3,2), (0,2,1)])
     ]
     return create_corner_boards(corners, cornerwoodcolor, z_level)
 
@@ -460,7 +464,7 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
 
     expansion1 = RoofExpansionDefs(right=Point3(600, 0, 0))
     expansion2 = RoofExpansionDefs(left=Point3(-600, 0, 0))
-    #roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0], oin=3, main_expansion=expansion1)
+    roofer.do_one_roof_face("porch_lape_1", roof_polygon_1, centerline[0], oin=3, main_expansion=expansion1)
     roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
     # todo: hack, return face1 plane outside
 
