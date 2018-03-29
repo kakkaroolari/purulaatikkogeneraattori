@@ -172,7 +172,7 @@ class Roofing( object ):
         expander.apply_expansion(local_roof_poly)
         # use corner steels or not, and later..
         start_edge_cut = vertical_straight_or_fit([polygon[1], polygon[0]])
-        end_edge_cut = vertical_straight_or_fit([polygon[-2], polygon[-1]])
+        end_edge_cut = vertical_straight_or_fit([polygon[-1], polygon[-2]])
         # todo: closedloop or not..
         roofing_poly = local_roof_poly
         if start_edge_cut is not None or end_edge_cut is not None:

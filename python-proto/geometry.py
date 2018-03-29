@@ -457,7 +457,7 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
         lape2p_2 = Point3(lape2r.x, rooftip.y, xyplane_elevation)
         #roof_polygon_1 = [rooftip, lape1p2, lape1p3] + roof_polygon_1[1:]
         roof_polygon_1 = [rooftip] + roof_polygon_1[1:]
-        roof_polygon_2 = roof_polygon_2[:-1] + [lape2p_3, lape2p_2, rooftip]
+        roof_polygon_2 = roof_polygon_2[:-1] + [rooftip]
         trace("roof_polygon_1: ", roof_polygon_1)
         trace("centerline: ", centerline)
         #pgrid_y.append(ylastdist)
@@ -474,7 +474,7 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
     #start2 = centerline[1].Clone()
     #start2.z = xyplane_elevation
     #direction2 = start2.GetVectorTo(roof_polygon_2[1])
-    #roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
+    roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
     # todo: hack, return face1 plane outside
 
     return roofer
