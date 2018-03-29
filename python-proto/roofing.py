@@ -24,7 +24,7 @@ class RoofExpansionDefs( object ):
     def _get_key(self, key):
         return self._keys[key]
 
-    def apply_expansion(self, open_loop):
+    def apply_expansion(self, open_loop, tolerance=1):
         ind = 0
         for point in open_loop[:-1]:
             toNext = point.GetVectorTo(open_loop[ind+1])
@@ -32,7 +32,8 @@ class RoofExpansionDefs( object ):
             # if vector is roof lape suuntainen, extrude
             expand = None
             for key, direction in self._keys.items():
-                if angle_between_vectors(toNext.ToArr(), direction, directed=True) < math.radians(1):
+                # big tolerance for jiiri, lyhty, whatnot.
+                if angle_between_vectors(toNext.ToArr(), direction, directed=True) < math.radians(tolerance):
                     expand = self._expander[key]
                     break
             # paatyraystaat yli
@@ -147,7 +148,7 @@ class Roofing( object ):
                 local_chimney = create_cut_aabb(cut_corners_local)
 
         fit_plane_data_local = transistor.convertToLocal(fit_plane_world)
-        fit_planes = to_planedef(fit_plane_data_local)
+        fit_planes = [to_planedef(fit_plane_data_local)]
         roof_data.set_deck_data(decking_data, sides, cut_objs, cut_planes, fit_planes, local_chimney)
         self.roof_decs.append(roof_data)
 
@@ -169,13 +170,27 @@ class Roofing( object ):
                                      down=Point3(0, extend_down, 0),
                                      up=Point3(0, extend_up, 0))
         expander.apply_expansion(local_roof_poly)
+        # use corner steels or not, and later..
+        start_edge_cut = vertical_straight_or_fit([polygon[1], polygon[0]])
+        end_edge_cut = vertical_straight_or_fit([polygon[-2], polygon[-1]])
         # todo: closedloop or not..
-        steel_point_pairs = create_hatch(local_roof_poly, profile_width, profile_width + 20, exact=True)
+        roofing_poly = local_roof_poly
+        if start_edge_cut is not None or end_edge_cut is not None:
+            min_x, min_y, max_x, max_y = bounding_box(roofing_poly)
+            # manual expansion, angled edges don't do that
+            if start_edge_cut:
+                min_x -= extend_left_right_abs
+            if end_edge_cut:
+                max_x += extend_left_right_abs
+            page = box(min_x, min_y, max_x, max_y)
+            roofing_poly = [Point3(p[0],p[1],0) for p in page.exterior.coords]
+        steel_point_pairs = create_hatch(roofing_poly, profile_width, profile_width + 20, exact=True)
         decking_data = []
         for spp in steel_point_pairs:
             for point in spp:
                 point.Translate(0, 0, extend_z)
             decking_data.append((spp, "S18-92W-1100-04", None,))
+        
         # L100
         side_steels = []
         xlin = 100/2-1
@@ -184,8 +199,10 @@ class Roofing( object ):
         extend_up2 = extend_up + 50 # todo: does not intersect
         lpp = [polygon[1].CopyLinear(xlin,extend_down,zlin), polygon[0].CopyLinear(xlin,extend_up2,zlin)]
         rpp = [polygon[-1].CopyLinear(-xlin,extend_up2,zlin), polygon[-2].CopyLinear(-xlin,extend_down,zlin)]
-        side_steels.append((lpp, "L100*100*1", Rotation.BACK,))
-        side_steels.append((rpp, "L100*100*1", Rotation.BACK,))
+        if start_edge_cut is None:
+            side_steels.append((lpp, "L100*100*1", Rotation.BACK,))
+        if end_edge_cut is None:
+            side_steels.append((rpp, "L100*100*1", Rotation.BACK,))
         # then cutting
         cuts = get_differences(polygon)
         cutAABBs = []
@@ -197,23 +214,24 @@ class Roofing( object ):
         # last cut is plane in the far end
         cutPlanes = []
         # check if either side diagonal
-        #angle_between_vectors
-        start_edge = [polygon[1], polygon[0]]
-        end_edge = [polygon[-2], polygon[-1]]
-        for edge in [start_edge, end_edge]:
-            edge_dir = edge[0].GetVectorTo(edge[1])
-            zpoint = edge[0].CopyLinear(0,0,1000)
-            z_dir = edge[0].GetVectorTo(zpoint)
-            normal = Point3.Cross(z_dir, edge_dir)
-            if angle_between_vectors(edge_dir.ToArr(), [0,1,0], directed=False) > math.radians(1):
+        for possible_fitting in [start_edge_cut, end_edge_cut]:
+            if possible_fitting is not None:
                 cutAABBs = []
-                cutPlanes.append(create_cut_plane(edge[0], edge[1], normal))
-        #if 0 == len(cutPlanes):
+                cutPlanes.append(possible_fitting)
         cutPlanes.append(create_cut_plane(polygon[-1], polygon[-2], Point3(1,0,0)))
         return decking_data, cutAABBs, cutPlanes, side_steels
 
     def get_roofs_faces(self):
         return self.roof_decs
+
+def vertical_straight_or_fit(edge):
+    edge_dir = edge[0].GetVectorTo(edge[1])
+    zpoint = edge[0].CopyLinear(0,0,1)
+    z_dir = edge[0].GetVectorTo(zpoint)
+    normal = Point3.Cross(z_dir, edge_dir)
+    if angle_between_vectors(edge_dir.ToArr(), [0,1,0], directed=False) < math.radians(1):
+        return None
+    return create_cut_plane(edge[0], edge[1], normal)
 
 class _RoofDeck(object):
     def __init__( self, section_name, plane):
@@ -240,7 +258,7 @@ class _RoofDeck(object):
         self.roof_side_data = side_data
         self.roof_cut_data = cut_data
         self.roof_cut_planes = cut_planes
-        self.roof_fit_plane = fit_plane
+        self.roof_fit_planes = fit_plane
         self.chimney_cut = chimney_cut
 
     def get_woods_data(self):
@@ -249,7 +267,7 @@ class _RoofDeck(object):
         for lowpoint, highpoint, profile, rotation in self.roof_part_data:
             roofparts.append(create_wood_at(lowpoint, highpoint, profile, rotation))
         # add steel
-        return roofparts, self.transformation_plane, [self.chimney_cut], [self.roof_fit_plane]
+        return roofparts, self.transformation_plane, [self.chimney_cut], self.roof_fit_planes
 
     def get_steel_data(self):
         roofparts = []
@@ -263,7 +281,7 @@ class _RoofDeck(object):
         sideparts = []
         for points, profile, rotation in self.roof_side_data:
             sideparts.append(get_part_data(profile, rotation, points, "S235JR", 3))
-        return sideparts, self.transformation_plane, [self.roof_fit_plane]
+        return sideparts, self.transformation_plane, self.roof_fit_planes
 
     def get_name(self):
         return self.name
