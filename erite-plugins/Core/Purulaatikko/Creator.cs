@@ -7,6 +7,7 @@ using System.Linq;
 using System.Windows.Forms;
 using EritePlugins.Common;
 using SwecoToolbar;
+using Tekla.Structures.Dialog;
 using Tekla.Structures.Model.UI;
 //using ChainSaw;
 
@@ -114,6 +115,7 @@ namespace EritePlugins.Core.Purulaatikko
             Assembly assembly = null;
             int labelCounter = 0;
             List<Tuple<AABB, Part>> cutSolids = CreateSolids(section.cutobjects);
+            List<Part> cutContours = CreateContours(section.cutcontours);
             List<Tuple<Tuple<Point, Point, Point>, Plane>> cutPlanes = CreatePlanes(section.planes);
             List<Tuple<Tuple<Point, Point, Point>, Plane>> fitPlanes = CreatePlanes(section.fitplanes);
             Tracer._trace($"Found {cutSolids.Count} AABB's to cut with");
@@ -140,6 +142,7 @@ namespace EritePlugins.Core.Purulaatikko
                         beam.SetLabel(label);
                         TryApplyCuts(beam, cutSolids);
                         TryApplyCuts(beam, cutPlanes);
+                        TryApplyCuts(beam, cutContours);
                         TryApplyFits(beam, fitPlanes);
                     }
                 }
@@ -154,6 +157,45 @@ namespace EritePlugins.Core.Purulaatikko
             {
                 cutItem.Item2.Delete();
             }
+        }
+
+        private List<Part> CreateContours(JsPart[] sectionContours)
+        {
+            var contours = new List<Part>();
+            if (null == sectionContours) return contours;
+
+            Chamfer stub = null;
+
+            foreach (var contourDef in sectionContours)
+            {
+                var plate = new ContourPlate();
+                string sysProfileString = null;
+                ProfileConversion.ConvertFromCurrentUnits(contourDef.profile, ref sysProfileString);
+                plate.Profile.ProfileString = sysProfileString;
+                plate.Material.MaterialString = contourDef.material;
+                plate.Class = BooleanPart.BooleanOperativeClassName;
+                plate.Name = "CUTPART";
+                plate.PartNumber.Prefix = "0";
+                plate.PartNumber.StartNumber = 0;
+                plate.AssemblyNumber.Prefix = " ";
+                plate.AssemblyNumber.StartNumber = 0;
+
+                plate.Position.Depth = Position.DepthEnum.MIDDLE;
+                plate.Position.Plane = Position.PlaneEnum.MIDDLE;
+                plate.Position.PlaneOffset = 0;
+                if (null != contourDef.rotation)
+                {
+                    plate.Position.Rotation = EnumConverter.TryFromInt((int)contourDef.rotation, Position.RotationEnum.FRONT);
+                }
+                plate.Position.RotationOffset = 0.0;
+                plate.Contour = new Contour()
+                {
+                    ContourPoints = new ArrayList(contourDef.points.Select(jp => new ContourPoint(jp.ToTS(), null)).ToArray())
+                };
+                contours.Add(plate);
+            }
+            Tracer._trace($"Created {contours.Count} cut contours");
+            return contours;
         }
 
         private List<Tuple<Tuple<Point, Point, Point>, Plane>> CreatePlanes(JsPlane[] planeDefs)
@@ -241,6 +283,35 @@ namespace EritePlugins.Core.Purulaatikko
             return aabbs;
         }
 
+        /*
+        public static ContourPlate CreateCuttingPart(string profileString, string mate)
+        {
+            var plate = new ContourPlate();
+
+            //var myProfileString = "PL" + (thickness).ToString("F2");
+
+            string sysProfileString = null;
+
+            ProfileConversion.ConvertFromCurrentUnits(profileString, ref sysProfileString);
+            plate.Profile.ProfileString = sysProfileString;
+            plate.Material.MaterialString = "ANTIMATERIAL";
+            plate.Class = BooleanPart.BooleanOperativeClassName;
+            plate.Name = "CUTPART";
+            plate.PartNumber.Prefix = "0";
+            plate.PartNumber.StartNumber = 0;
+            plate.AssemblyNumber.Prefix = " ";
+            plate.AssemblyNumber.StartNumber = 0;
+
+            plate.Position.Depth = Position.DepthEnum.BEHIND;
+            plate.Position.Plane = Position.PlaneEnum.MIDDLE;
+            plate.Position.PlaneOffset = 0;
+            plate.Position.Rotation = Position.RotationEnum.FRONT;
+            plate.Position.RotationOffset = 0.0;
+
+            return plate;
+        }
+        */
+
         private void TryApplyCuts(Part part, List<Tuple<AABB, Part>> cutSolids)
         {
             if ( null == cutSolids ) return;
@@ -262,8 +333,28 @@ namespace EritePlugins.Core.Purulaatikko
                 }
                 //Tracer._trace($"Cut solid: {part.Name}.");
             }
-
         }
+
+        private void TryApplyCuts(Part part, List<Part> cutContours)
+        {
+            foreach (var cutObject in cutContours)
+            {
+                cutObject.Insert();
+                if (SolidToSolidIntersect(part, cutObject))
+                {
+                    var plate = new BooleanPart {Father = part};
+                    plate.SetOperativePart(cutObject);
+                    if (!plate.Insert())
+                    {
+                        Tracer._trace("Insert failed!");
+                    }
+
+                    Tracer._trace($"Cut contour: {part.Profile.ProfileString}.");
+                }
+                cutObject.Delete();
+            }
+        }
+
         private void TryApplyFits(Part beam, List<Tuple<Tuple<Point, Point, Point>, Plane>> fitPlanes)
         {
             if (null == fitPlanes) return;
@@ -409,5 +500,31 @@ namespace EritePlugins.Core.Purulaatikko
 
         }
 
+        public static bool SolidToSolidIntersect(Part part1, Part part2)
+        {
+            double originalVolume = 0.0;
+            part1.GetReportProperty("VOLUME_NET", ref originalVolume);
+
+            var cuttingPart = new BooleanPart
+            {
+                Father = part1
+            };
+            part2.Class = BooleanPart.BooleanOperativeClassName;
+            cuttingPart.SetOperativePart(part2);
+            cuttingPart.Insert();
+
+            double volumeAfterCut = 0.0;
+            part1.GetReportProperty("VOLUME_NET", ref volumeAfterCut);
+
+            cuttingPart.Delete();
+
+            if (originalVolume > volumeAfterCut)
+            {
+                Tracer._trace("volume change");
+                return true;
+            }
+
+            return false;
+        }
     }
 }

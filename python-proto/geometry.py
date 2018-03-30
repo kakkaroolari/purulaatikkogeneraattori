@@ -228,16 +228,20 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     #trace("roof_woody: ", roof_woody.get_roofs_faces(), porch_roofer.get_roofs_faces())
     for roof_face in roof_woody.get_roofs_faces() + porch_roofer.get_roofs_faces():
         trace("add roof: ", roof_face.get_name())
+        #TDD 553 3
         # woods
         part_data, coord_sys, cut_aabbs, fit_planes = roof_face.get_woods_data()
         name = roof_face.get_name()
-        combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys, solids=cut_aabbs, fits=fit_planes))
+        combined_data.append(named_section("roof_woods_"+name, part_data, ts_class=12, csys=coord_sys,
+                                           solids=cut_aabbs, fits=fit_planes))
         # steels
-        geom_data, coord_sys, cut_aabbs, cut_planes = roof_face.get_steel_data()
-        combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, solids=cut_aabbs, planes=cut_planes))
+        geom_data, coord_sys, cut_aabbs, cut_planes, cub_objs = roof_face.get_steel_data()
+        combined_data.append(named_section("roof_steels_"+name, geom_data, ts_class=3, csys=coord_sys, 
+                                           solids=cut_aabbs, planes=cut_planes, contours=cub_objs))
         # side steels
         sides_data, coord_sys, fit_planes = roof_face.get_sides_data()
-        combined_data.append(named_section("roof_sides_"+name, sides_data, ts_class=3, csys=coord_sys, fits=fit_planes))
+        combined_data.append(named_section("roof_sides_"+name, sides_data, ts_class=3, csys=coord_sys,
+                                          fits=fit_planes))
 
     with open('data.json', 'w') as jsonfile:
         json.dump(combined_data, jsonfile, cls=MyEncoder, indent=2)
@@ -255,7 +259,7 @@ def append_cladding_data(clad_defs, append_to, gridx, gridy, gridz, fieldsaw, wi
         wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
         append_to.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, planes=fittings, fits=fittings))
 
-def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids=None, fits=None):
+def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids=None, fits=None, contours=None):
     # todo: can add assembly meta, classes etc.
     if ts_class is not None:
         for part in part_list:
@@ -266,7 +270,8 @@ def named_section(name, part_list, ts_class=None, planes=None, csys=None, solids
         "planes": remove_none_elements_from_list(planes), 
         "coordinate_system": csys,
         "cutobjects": remove_none_elements_from_list(solids),
-        "fitplanes": remove_none_elements_from_list(fits)
+        "fitplanes": remove_none_elements_from_list(fits),
+        "cutcontours": remove_none_elements_from_list(contours)
         }
 
 def generate_lower_reach(polygon, z_offset, mass_center=None):
@@ -441,6 +446,7 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
     #trace("pw3: ", pgrid_x, pgrid_y, pgrid_z)
     roof_polygon_2 = generate_loop(pgrid_x, pgrid_y, pgrid_z, roof_tuples_2)
 
+    cut_object = None
     if rooftip is not None and lape1l is not None and lape2r is not None:
         #dist_ytop = rooftip.distFrom(centerline[0]
         xyplane_elevation = roof_polygon_1[0].z
@@ -449,6 +455,7 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
         #unadjusted_yr = centerline[1].y
         #centerline[0] = rooftip.Clone()
         # lape 1
+        cut_tip = rooftip.Clone()
         rooftip.z = xyplane_elevation
         #lape1p2 = Point3(lape1l.x, rooftip.y, xyplane_elevation)
         lape1p3 = Point3(lape1l.x, unadjusted_y, xyplane_elevation)
@@ -460,7 +467,15 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
         roof_polygon_2 = roof_polygon_2[:-1] + [rooftip]
         trace("roof_polygon_1: ", roof_polygon_1)
         trace("centerline: ", centerline)
-        #pgrid_y.append(ylastdist)
+        # cut main roof with the extension
+        cut_vector1 = cut_tip.GetVectorTo(lape1l)
+        cut_vector2 = cut_tip.GetVectorTo(lape2r)
+        cut_vector1 = cut_vector1.Normalize(1.2*(1000 + cut_vector1.magnitude()))
+        cut_vector2 = cut_vector2.Normalize(1.2*(1000 + cut_vector2.magnitude()))
+        cut_polygon = [cut_tip, cut_tip.CopyLinear(cut_vector1), cut_tip.CopyLinear(cut_vector2)]
+        #cut_object = get_part_data("PL200", Rotation.FRONT, cut_polygon, "ANTIMATERIAL")
+        # TODO: hardcoder roofdeck order, 0 is the porch side
+        cut_world = main_roofer.roof_decs[0].add_ext_cut_part(cut_polygon)
 
     roofer = Roofing("porch_rafters", None)
 
@@ -476,8 +491,9 @@ def create_porch_roof(grid_x, grid_y, pgrid_z, main_roofer):
     #direction2 = start2.GetVectorTo(roof_polygon_2[1])
     roofer.do_one_roof_face("porch_lape_2", roof_polygon_2, centerline[1], main_expansion=expansion2)
     # todo: hack, return face1 plane outside
+    #if cut_polygon is not None:
 
-    return roofer
+    return roofer #, cut_polygon
 
 
 def create_one_side_trusses(begin, mainwall, mainwall_length, count, last, holppa, half_width, roofelevation, halflife2, roofdeclination):
@@ -788,11 +804,8 @@ if __name__ == "__main__":
          - lattiajuoksut
          - valipohjavasat
          - ullakko ristikko
-         - ulkovuorilaud. + rimat + nurkka + vesip.
          - (holpat)
          - loop-object with continues(), corners adjust
-         - attic windows
-         - roof border woods
     """
     #zz = pairwise(["a","b","c","d","e"])
     #trace("pairwise: ", list(zz))

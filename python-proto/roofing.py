@@ -53,9 +53,10 @@ class Roofing( object ):
         self.chimney_world = chimney_spec
         self.roof_decs = []
         self.default_expander = RoofExpansionDefs(left=Point3(-600, 0, 0), right=Point3(600, 0, 0))
+        self.cut_poly = []
 
-    #def set_expander(self, direction, vector):
-    #    self.default_expander
+    def set_cutpoly(self, points):
+        self.cut_poly = points
 
 
     def do_one_roof_face(self, section_name, face_polygon, high_point_actual, dirstart=None, main_expansion=None):
@@ -84,10 +85,16 @@ class Roofing( object ):
         trace("coslen: ", coslen)
         angular = firstside.Clone().Normalize(coslen)
         face_polygon[1].Translate(angular)
-        for point in face_polygon[2:-1]:
+        for point in face_polygon[2:-2]:
             # move raystas 600 mm outwards
             # TODO: This shit makes holppa==125.00 mm brake
             point.Translate(direction)
+        # todo dry
+        lastside = face_polygon[-1].GetVectorTo(face_polygon[-2])
+        coslen = 600 / math.cos(angle_between_vectors(lastside.ToArr(), direction.ToArr()))
+        trace("coslen: ", coslen)
+        angular = lastside.Clone().Normalize(coslen)
+        face_polygon[-2].Translate(angular)
 
         # tilt roof plane from xy plane to actual angle
         mat = projection_matrix(origo.ToArr(), N.ToArr(), direction=[0,0,1])
@@ -242,6 +249,7 @@ class _RoofDeck(object):
         self.roof_part_data = []
         self.roof_deck_data = []
         self.roof_cut_data = []
+        self.roof_cut_parts = []
 
     def get_plane_data(self):
         origin = self.transformation_plane.origin()
@@ -261,6 +269,14 @@ class _RoofDeck(object):
         self.roof_fit_planes = fit_plane
         self.chimney_cut = chimney_cut
 
+    def add_ext_cut_part(self, cut_points):
+        # expecting these to be in world coordinates
+        transistor = Transformer(self.transformation_plane)
+        cut_polygon = transistor.convertToLocal(cut_points)
+        # create a contour plate cut object
+        cut_object = get_part_data("PL400", Rotation.FRONT, cut_polygon, "ANTIMATERIAL")
+        self.roof_cut_parts.append(cut_object)
+
     def get_woods_data(self):
         roofparts = []
         #for pp in self.roof_stud_coords:
@@ -275,7 +291,7 @@ class _RoofDeck(object):
             roofparts.append(get_part_data(profile, rotation, points, "S235JR", 3))
         # todo: add cut aabb's
         steel_cuts = self.roof_cut_data + [self.chimney_cut]
-        return roofparts, self.transformation_plane, steel_cuts, self.roof_cut_planes
+        return roofparts, self.transformation_plane, steel_cuts, self.roof_cut_planes, self.roof_cut_parts
 
     def get_sides_data(self):
         sideparts = []
