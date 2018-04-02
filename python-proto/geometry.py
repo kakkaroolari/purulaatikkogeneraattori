@@ -109,18 +109,25 @@ def write_out(specification):
     high_polygon2 = generate_loop(grid_x, grid_y, None, high_pairs2)
 
     # create window aabb's, possibly to be used all over the place
-    level1 = 1160
-    level2 = 4500 # random ass, todo: measure it
-    attic_offset = grid_y[-1]-300 # 600mm/2
-    line0 = generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,1,1)])
-    defs0 = [windowDef([attic_offset, 5000], "6*6", splitters=False)]
-    line1 = generate_loop(grid_x, grid_y, grid_z, [(2,1,1), (3,1,1)])
-    defs1 = [windowDef([1870, level1], "14*12")]
-    line2 = generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,3,1)])
-    defs2 = [windowDef([2650, level1], "11*12"), windowDef([attic_offset, 5000], "6*6", splitters=False)]
-    line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
-    defs3 = [windowDef([2100, level1], "14*12"), windowDef([6290, level1], "11*12")]
-    window_cuts, window_woods = create_window_boxes([(line0, defs0),(line1, defs1),(line2, defs2),(line3, defs3)])
+    #level1 = 1160
+    #level2 = 4500 # random ass, todo: measure it
+    #attic_offset = grid_y[-1]-300 # 600mm/2
+    #line0 = generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,1,1)])
+    #defs0 = [windowDef([attic_offset, 5000], "6*6", splitters=False)]
+    #line1 = generate_loop(grid_x, grid_y, grid_z, [(2,1,1), (3,1,1)])
+    #defs1 = [windowDef([1870, level1], "14*12")]
+    #line2 = generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,3,1)])
+    #defs2 = [windowDef([2650, level1], "11*12"), windowDef([attic_offset, 5000], "6*6", splitters=False)]
+    #line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
+    #defs3 = [windowDef([2100, level1], "14*12"), windowDef([6290, level1], "11*12")]
+    holedefs = []
+    for holedef in specification['holedefs']:
+        wall_line = generate_loop(grid_x, grid_y, grid_z, holedef['wall_line'])
+        #coords = [holedef['offset'], holedef['level']]
+        window_defs = [windowDef([wd['offset'], wd['level']], wd["hole"], wd["splitters"]) for wd in holedef['holes']]
+        holedefs.append((wall_line, window_defs,))
+    #window_cuts, window_woods = create_window_boxes([(line0, defs0),(line1, defs1),(line2, defs2),(line3, defs3)])
+    window_cuts, window_woods = create_window_boxes(holedefs)
     trace("Holes for: ", len(window_cuts), " windows.", window_cuts)
 
     # chimney pipe
@@ -130,13 +137,13 @@ def write_out(specification):
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
     board_areas = {
-        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,2),(0,3,2)],         defs0),
+        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,2),(0,3,2)],         holedefs[0]),
         "paaty_kolmio": clad_def([(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)], None, usefits=True),
         #"vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
-        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,3),(2,1,3)],         defs1),
-        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,2),(3,1,2)],         defs2),
+        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,3),(2,1,3)],         holedefs[1]),
+        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,2),(3,1,2)],         holedefs[2]),
         "etela_yla":    clad_def([(3,1,2),(3,3,2),(3,3,3),(3,2,4),(3,1,3)], None, usefits=True),
-        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,3),(3,3,3)],         defs3),
+        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,3),(3,3,3)],         holedefs[3]),
         #"kuisti_vas":   clad_def([(1,1,1),(1,0,1),(1,0,2),(1,1,4)],         None, usefits=True),
         #"kuisti_etu":   clad_def([(1,0,1),(2,0,1),(2,0,2),(1,0,2)],         None, usefits=True),
         #"kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
