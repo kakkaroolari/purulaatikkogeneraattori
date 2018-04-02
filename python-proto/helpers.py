@@ -315,7 +315,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
         first_offset: like 50 mm. from corner (nurkkalaudat mahtuu)
     """
     # todo actual polygon instead of a 2d bounding box? if needed
-    trace("polpol: ", polygon)
+    #trace("polpol: ", polygon)
     min_x, min_y, max_x, max_y = bounding_box(polygon)
 
     coords = []
@@ -370,6 +370,7 @@ def create_hatch(polygon, interval_wish, first_offset=None, last_offset=None, ho
     if holes is not None:
         #alt_poly = LinearRing([(p.x,p.y) for p in polygon])
         for windef in holes:
+            trace("holes: ", windef)
             x0, y0, dx, dy = windef.minmax_coords()
             rect = box(x0, y0, x0+dx, y0+dy)
             #alt_poly = alt_poly.difference(rect)

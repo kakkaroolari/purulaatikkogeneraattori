@@ -74,6 +74,18 @@ def is_short_side(p1, p2):
 def clad_def(polygon, windows, usefits=False):
     return {'poly': polygon, 'windows': windows, 'usefits': usefits}
 
+def get_wall_section_by(section, attribute, getprop, wallname):
+    #wallname = attribute #sect['name']
+    for x in section: #specification['holedefs']:
+        if x[attribute] == wallname:
+            #trace("i found it!")
+            prop = x[getprop]
+            break
+    else:
+        trace("did not find it: ", wallname)
+        prop = None
+    return prop
+
 def write_out(specification):
     # main grids
     grid_x = specification['grid_x']
@@ -99,7 +111,7 @@ def write_out(specification):
     # porch grid elevations (keep separate)
     porch = specification['foundations'][1]["edges"]
     porch_polygon = generate_loop(grid_x, grid_y, None, porch)
-    #get_plane_data
+    # get_plane_data
 
     high_pairs1 = [(0,1),
         (3,1)]
@@ -111,22 +123,15 @@ def write_out(specification):
     # create window aabb's, possibly to be used all over the place
     #level1 = 1160
     #level2 = 4500 # random ass, todo: measure it
-    #attic_offset = grid_y[-1]-300 # 600mm/2
-    #line0 = generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,1,1)])
-    #defs0 = [windowDef([attic_offset, 5000], "6*6", splitters=False)]
-    #line1 = generate_loop(grid_x, grid_y, grid_z, [(2,1,1), (3,1,1)])
-    #defs1 = [windowDef([1870, level1], "14*12")]
-    #line2 = generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,3,1)])
-    #defs2 = [windowDef([2650, level1], "11*12"), windowDef([attic_offset, 5000], "6*6", splitters=False)]
-    #line3 = generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (0,3,1)])
-    #defs3 = [windowDef([2100, level1], "14*12"), windowDef([6290, level1], "11*12")]
     holedefs = []
+    holedefs_byname = {}
     for holedef in specification['holedefs']:
-        wall_line = generate_loop(grid_x, grid_y, grid_z, holedef['wall_line'])
-        #coords = [holedef['offset'], holedef['level']]
+        wall_name = holedef['wall_line']
+        wall_def = get_wall_section_by(specification['wall_sections'], "name", "line", wall_name)
+        wall_line = generate_loop(grid_x, grid_y, grid_z, wall_def)
         window_defs = [windowDef([wd['offset'], wd['level']], wd["hole"], wd["splitters"]) for wd in holedef['holes']]
         holedefs.append((wall_line, window_defs,))
-    #window_cuts, window_woods = create_window_boxes([(line0, defs0),(line1, defs1),(line2, defs2),(line3, defs3)])
+        holedefs_byname[wall_name] = window_defs
     window_cuts, window_woods = create_window_boxes(holedefs)
     trace("Holes for: ", len(window_cuts), " windows.", window_cuts)
 
@@ -136,18 +141,13 @@ def write_out(specification):
 
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
-    board_areas = {
-        "paaty_ala":    clad_def([(0,3,1),(0,1,1),(0,1,2),(0,3,2)],         holedefs[0]),
-        "paaty_kolmio": clad_def([(0,3,2),(0,1,2),(0,1,3),(0,2,4),(0,3,3)], None, usefits=True),
-        #"vasemmalla":   clad_def([(0,1,1),(1,1,1),(1,1,4),(0,1,4)],         None),
-        "oikealla":     clad_def([(2,1,1),(3,1,1),(3,1,3),(2,1,3)],         holedefs[1]),
-        "etela_ala":    clad_def([(3,1,1),(3,3,1),(3,3,2),(3,1,2)],         holedefs[2]),
-        "etela_yla":    clad_def([(3,1,2),(3,3,2),(3,3,3),(3,2,4),(3,1,3)], None, usefits=True),
-        "takaseina":    clad_def([(3,3,1),(0,3,1),(0,3,3),(3,3,3)],         holedefs[3]),
-        #"kuisti_vas":   clad_def([(1,1,1),(1,0,1),(1,0,2),(1,1,4)],         None, usefits=True),
-        #"kuisti_etu":   clad_def([(1,0,1),(2,0,1),(2,0,2),(1,0,2)],         None, usefits=True),
-        #"kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,4),(2,0,2)],         None, usefits=True)
-        }
+    board_areas = {}
+    for sect in specification['wall_sections']:
+        wallname = sect['name']
+        holes = holedefs_byname.get(wallname, None)
+        segment_def = [tuple(pt) for pt in sect['line']]
+        #trace("segdef: ", segment_def)
+        board_areas[wallname] = clad_def(segment_def, holes, sect['usefits'])
 
     porch_facades = {
         "kuisti_vas":   clad_def([(0,1,1),(0,0,1),(0,0,3),(0,1,3)],         None),
@@ -222,7 +222,7 @@ def write_out(specification):
         #combined_data.append(named_section(stf.name, stf.get_stiffener_data(), planes=cuts, fits=fits, solids=window_cuts))
 
     # cladding boards
-    #append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
+    append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
     #append_cladding_data(porch_facades, combined_data, grid_x, grid_y, pelevs_z, fieldsaw, [])
 
     #for key, value in board_areas.items():
