@@ -15,9 +15,9 @@ from helpers import *
 
 
 cornerwoodcolor = 41
-chimney_x = 3110
+#chimney_x = 3110
 porch_depth = 3000
-chimney_y = 3080 + porch_depth
+#chimney_y = 3080 + porch_depth
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -74,27 +74,30 @@ def is_short_side(p1, p2):
 def clad_def(polygon, windows, usefits=False):
     return {'poly': polygon, 'windows': windows, 'usefits': usefits}
 
-def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline, roof_angle):
+def write_out(specification):
+    # main grids
+    grid_x = specification['grid_x']
+    grid_y = specification['grid_y']
+    grid_z = specification['grid_z']
+    pelevs_z = specification['elev_z']
+    roof_angle = specification['roofangle']
+    porchroofangle = roofangle
+    chimney_x = specification['chimney_x']
+    chimney_y = specification['chimney_y']
+    chimney_profile = specification['chimney_profile']
+    footingProfile = specification['foundations'][0]["profile1"]
+    sockleProfile = specification['foundations'][0]["profile2"]
+        #sockle = "800*200"
+    #footing = "200*500"
+
+
     # define line, or grid intersect
-    pairs = [(0,1),
-        (3,1),
-        (3,3),
-        (0,3),
-        (0,1)]
+    pairs = specification['foundations'][0]["edges"]
     master_polygon = generate_loop(grid_x, grid_y, None, pairs)
     #trace(pprint.pformat(master_polygon))
 
     # porch grid elevations (keep separate)
-    porch_width = toDistances(grid_x)[2]
-    #trace("pw: ", porch_width)
-    porchroofangle = roofangle
-    #pelevs_z = [0.00, 1000.00, 3000, (porch_width/2)*math.tan(math.radians(porchroofangle))]
-    pelevs_z = [z for z in grid_z]
-    pelevs_z[-1] = (porch_width/2)*math.tan(math.radians(porchroofangle))
-    porch = [(0,1),
-        (0,0),
-        (2,0),
-        (2,1)]
+    porch = specification['foundations'][1]["edges"]
     porch_polygon = generate_loop(grid_x, grid_y, None, porch)
     #get_plane_data
 
@@ -122,7 +125,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
 
     # chimney pipe
     section_cut = generate_loop(grid_x, grid_y, grid_z, [(0,1,0), (0,3,0), (0,3,3)])
-    chimney_parts, pipe_cut = create_chimneypipe(section_cut, x=chimney_x, y=chimney_y, profile="620*900", roofangle=roof_angle)
+    chimney_parts, pipe_cut = create_chimneypipe(section_cut, x=chimney_x, y=chimney_y, profile=chimney_profile, roofangle=roof_angle)
 
     # todo: move somplace more appropriate?
     fieldsaw = Cladding("cladding")
@@ -165,7 +168,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     roof_woody = generate_main_roof(grid_x, grid_y, grid_z, pipe_cut)
 
     # porch
-    porch_decline = porch_depth*math.tan(math.radians(roof_angle))
+    #porch_decline = porch_depth*math.tan(math.radians(roof_angle))
     footing += generate_footing(porch_polygon, footingProfile, sockleProfile)
     sockle += generate_sockle(porch_polygon, sockleProfile, z_offset)
     offset_porch_woods_outwards(porch_polygon, mass_center)
@@ -175,7 +178,7 @@ def write_out(grid_x, grid_y, grid_z, sockleProfile, footingProfile, centerline,
     porch_roofer = create_porch_roof(grid_x, grid_y, pelevs_z, roof_woody)
 
     # inner walls
-    inside_walls = create_inside()
+    inside_walls = create_inside(chimney_x, chimney_y)
     #inside_walls = []
     #trace("iw: ", inside_walls)
 
@@ -691,7 +694,7 @@ def looper(gx, gy, gz, xy1, xy2, zlow=0, zup=1):
         grid_points.append((x,y,zup))
     return generate_loop(gx, gy, gz, grid_points)
 
-def create_inside():
+def create_inside(chimney_x, chimney_y):
     # create grids
     boards = 22 #+ 13
     outer_wall = 100 + boards
@@ -807,23 +810,19 @@ if __name__ == "__main__":
          - (holpat)
          - loop-object with continues(), corners adjust
     """
-    #zz = pairwise(["a","b","c","d","e"])
-    #trace("pairwise: ", list(zz))
-    roofangle = 36.64
-    porch_decline = porch_depth*math.tan(math.radians(roofangle))
-    
+    filename = sys.argv[1]
+    specification = json.load(open(filename))
+
+    roofangle = specification['roofangle']
+    #porch_decline = porch_depth*math.tan(math.radians(roofangle))
+
     # todo: add centerline to master grid later..
-    grid_x = [0.00, 2025.00, 2025.00, 5060.00]
-    grid_y = [0.00, porch_depth, 3800.00, 3800.00]
-    #grid_z = [0.00, 1000.00, 3700.00-porch_decline, porch_decline, 150.00, 3800*math.tan(math.radians(roofangle))]
-    grid_z = [0.00, 1000.00, 3700, 150, 2800]
+    grid_z = specification['grid_z']
     trace("roof tip error: ~", int(round(abs(3800*math.tan(math.radians(roofangle))-grid_z[-1]))), "mm.")
     # harja
     #grid_z.append(grid_z[-1] + math.tan(math.radians(roofangle)))
-    centerline = [Point3(0, porch_depth + 7600.0 / 2, 0), Point3(sum(grid_x), porch_depth + 7600.0 / 2, 0)]
-    sockle = "800*200"
-    footing = "200*500"
+    #centerline = [Point3(0, porch_depth + 7600.0 / 2, 0), Point3(sum(grid_x), porch_depth + 7600.0 / 2, 0)]
 
     #trace("CONVERTED:\n" + pprint.pformat(attr_dict))
-    write_out(grid_x, grid_y, grid_z, sockle, footing, centerline, roofangle)
+    write_out(specification)
 
