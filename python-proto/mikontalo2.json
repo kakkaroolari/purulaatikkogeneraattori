@@ -106,7 +106,14 @@
 			"level": 1160.00,
 			"hole": "11*12",
 			"splitters": true
-		}]		
+		}]},{
+		"wall_line": "kuisti_etu",
+		"holes": [{
+			"offset": 2000.00,
+			"level": 260.00,
+			"hole": "10*21",
+			"splitters": false
+		}]
 	}]
 }
 	
