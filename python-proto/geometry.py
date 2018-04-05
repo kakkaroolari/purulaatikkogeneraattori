@@ -71,8 +71,8 @@ def is_short_side(p1, p2):
     # TODO: assumes purulaatikko always oriented same
     return abs(p2.y-p1.y) > 5000 
 
-def clad_def(polygon, windows, usefits=False):
-    return {'poly': polygon, 'windows': windows, 'usefits': usefits}
+def clad_def(polygon, windows, elevations, usefits=False):
+    return {'poly': polygon, 'windows': windows, "elevations": elevations, 'usefits': usefits}
 
 def get_wall_section_by(section, attribute, getprop, wallname):
     #wallname = attribute #sect['name']
@@ -144,16 +144,17 @@ def write_out(specification):
     board_areas = {}
     for sect in specification['wall_sections']:
         wallname = sect['name']
+        elevations_key = sect['elevations']
         holes = holedefs_byname.get(wallname, None)
         segment_def = [tuple(pt) for pt in sect['line']]
         #trace("segdef: ", segment_def)
-        board_areas[wallname] = clad_def(segment_def, holes, sect['usefits'])
+        board_areas[wallname] = clad_def(segment_def, holes, elevations_key, sect['usefits'])
 
-    porch_facades = {
-        "kuisti_vas":   clad_def([(0,1,1),(0,0,1),(0,0,3),(0,1,3)],         None),
-        "kuisti_etu":   clad_def([(0,0,1),(2,0,1),(2,0,3),(1,0,4),(0,0,3)], None, usefits=True),
-        "kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,3),(2,0,3)],         None)
-        }
+    #porch_facades = {
+    #    "kuisti_vas":   clad_def([(0,1,1),(0,0,1),(0,0,3),(0,1,3)],         None),
+    #    "kuisti_etu":   clad_def([(0,0,1),(2,0,1),(2,0,3),(1,0,4),(0,0,3)], None, usefits=True),
+    #    "kuisti_oik":   clad_def([(2,0,1),(2,1,1),(2,1,3),(2,0,3)],         None)
+    #    }
 
     # corner boards
     corner_boards = create_main_corners(grid_x, grid_y, grid_z, cornerwoodcolor)
@@ -222,7 +223,7 @@ def write_out(specification):
         #combined_data.append(named_section(stf.name, stf.get_stiffener_data(), planes=cuts, fits=fits, solids=window_cuts))
 
     # cladding boards
-    append_cladding_data(board_areas, combined_data, grid_x, grid_y, grid_z, fieldsaw, window_cuts)
+    append_cladding_data(board_areas, combined_data, specification, fieldsaw, window_cuts)
     #append_cladding_data(porch_facades, combined_data, grid_x, grid_y, pelevs_z, fieldsaw, [])
 
     #for key, value in board_areas.items():
@@ -258,13 +259,18 @@ def write_out(specification):
         #jsonfile.write(pprint.pformat(combined_data))
     print("wrote:\n\b", os.getcwd() + os.path.sep + "data.json")
 
-def append_cladding_data(clad_defs, append_to, gridx, gridy, gridz, fieldsaw, window_cuts):
+def append_cladding_data(clad_defs, append_to, specification, fieldsaw, window_cuts):
+    gridx = specification['grid_x']
+    gridy = specification['grid_y']
     for key, value in clad_defs.items():
         segment_name = "cladding_" + key
         trace("Creating cladding for: ", segment_name)
         segment_polygon = value['poly']
         segment_windows = value['windows']
         segment_isfitted = value['usefits']
+        segment_elevations_name = value['elevations']
+        trace("s.e.n: ", segment_elevations_name)
+        gridz = specification[segment_elevations_name]
         cladding_loop = generate_loop(gridx, gridy, gridz, segment_polygon)
         wall_parts, fittings = fieldsaw.create_cladding(cladding_loop, "22*125", 33, segment_windows, fittings=segment_isfitted)
         append_to.append(named_section(segment_name, wall_parts, 44, solids=window_cuts, planes=fittings, fits=fittings))
