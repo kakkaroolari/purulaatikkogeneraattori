@@ -114,6 +114,27 @@
 			"hole": "10*21",
 			"splitters": false
 		}]
+	}],
+	"corner_woods": [{
+		"points":[[3,1,1], [3,1,2], [3,2,1]],
+		"elevations": "grid_z",
+		"z_level": 44
+	},{
+		"points":[[3,3,1], [3,3,2], [2,3,1]],
+		"elevations": "grid_z",
+		"z_level": 44
+	},{
+		"points":[[0,3,1], [0,3,2], [0,2,1]],
+		"elevations": "grid_z",
+		"z_level": 44
+	},{
+		"points":[[0,0,1], [0,0,2], [1,0,1]],
+		"elevations": "elev_z",
+		"z_level": 44
+	},{
+		"points":[[2,0,1], [2,0,2], [2,1,1]],
+		"elevations": "elev_z",
+		"z_level": 44
 	}]
 }
 	

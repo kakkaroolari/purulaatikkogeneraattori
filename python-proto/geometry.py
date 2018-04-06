@@ -157,8 +157,7 @@ def write_out(specification):
     #    }
 
     # corner boards
-    corner_boards = create_main_corners(grid_x, grid_y, grid_z, cornerwoodcolor)
-    corner_boards += create_porch_corners(grid_x, grid_y, pelevs_z, cornerwoodcolor)
+    corner_boards = create_corners_woods(grid_x, grid_y, specification, cornerwoodcolor)
 
     mass_center = centroid(master_polygon)
     # TODO: make the layers bottom up and increase z offset
@@ -325,24 +324,17 @@ def create_window_boxes(windows):
             windower.add_window(transform, low, high, rotation, win_def.multiframe())
     return aabbs, windower.get_framing_woods()
 
-def create_main_corners(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
-    corners = [
-        #generate_loop(grid_x, grid_y, grid_z, [(0,1,1), (0,1,3), (1,1,1)]),
-        generate_loop(grid_x, grid_y, grid_z, [(3,1,1), (3,1,2), (3,2,1)]),
-        generate_loop(grid_x, grid_y, grid_z, [(3,3,1), (3,3,2), (2,3,1)]),
-        generate_loop(grid_x, grid_y, grid_z, [(0,3,1), (0,3,2), (0,2,1)])
-    ]
-    return create_corner_boards(corners, cornerwoodcolor, z_level)
+def create_corners_woods(grid_x, grid_y, spec, cornerwoodcolor):
+    corner_woods = []
+    for corner_spec in spec["corner_woods"]:
+        segment_elevations_name = corner_spec["elevations"]
+        grid_z = gridz = spec[segment_elevations_name]
+        z_level = corner_spec["z_level"]
+        loop = generate_loop(grid_x, grid_y, grid_z, corner_spec["points"])
+        corner_woods += create_corner_boards([loop], cornerwoodcolor, z_level)
+    return corner_woods
 
-def create_porch_corners(grid_x, grid_y, grid_z, cornerwoodcolor, z_level=44):
-    corners = [
-        generate_loop(grid_x, grid_y, grid_z, [(0,0,1), (0,0,2), (1,0,1)]),
-        generate_loop(grid_x, grid_y, grid_z, [(2,0,1), (2,0,2), (2,1,1)])
-    ]
-    return create_corner_boards(corners, cornerwoodcolor, z_level)
-
-#def _create_window_hole(distance_x, distance_y, 
-def create_corner_boards(corner_loops, cornerwoodcolor, z_level=44):
+def create_corner_boards(corner_loops, cornerwoodcolor, z_level):
     corner_woods = []
     for corner_tri in corner_loops:
         #trace("corner tri: ", corner_tri)
