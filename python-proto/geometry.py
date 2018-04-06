@@ -172,7 +172,7 @@ def write_out(specification):
     wall_studs = generate_wall_studs(master_polygon, 1000.0, 3650, roof_angle)
 
     # bit different
-    roof_woody = generate_main_roof(grid_x, grid_y, grid_z, pipe_cut)
+    roof_woody = generate_main_roof(grid_x, grid_y, specification, pipe_cut)
 
     # porch
     #porch_decline = porch_depth*math.tan(math.radians(roof_angle))
@@ -397,25 +397,27 @@ def create_chimneypipe(section_cut, x, y, profile, roofangle):
     concrete_parts.append(get_part_data(end_profile, None, [joined, top_elev], "Concrete_Undefined"))
     return concrete_parts, cutting_aabb
 
-def generate_main_roof(grid_x, grid_y, grid_z, chimney_pipe):
+def generate_main_roof(grid_x, grid_y, spec, chimney_pipe):
+    testroof0 = spec["roof_sections"][0]
+    testgridz = spec["grid_z"]
     # xy plane
-    roof_tuples_1 = [(0,2,3), # with porch roof extension
-        (0,1,3),
-        #(1,1,4),
-        #(1,0,4),
-        #(2,0,4),
-        #(2,1,4),
-        (3,1,3),
-        (3,2,3)]
-    roof_polygon_1 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_1)
+    #roof_tuples_1 = [(0,2,3), # with porch roof extension
+    #    (0,1,3),
+    #    #(1,1,4),
+    #    #(1,0,4),
+    #    #(2,0,4),
+    #    #(2,1,4),
+    #    (3,1,3),
+    #    (3,2,3)]
+    roof_polygon_1 = generate_loop(grid_x, grid_y, testgridz, testroof0["faces"][0]["edges"])
     #trace("roof poly 1: ", roof_polygon_1)
-    roof_tuples_2 = [(3,2,3),
-        (3,3,3),
-        (0,3,3),
-        (0,2,3)]
-    roof_polygon_2 = generate_loop(grid_x, grid_y, grid_z, roof_tuples_2)
+    #roof_tuples_2 = [(3,2,3),
+    #    (3,3,3),
+    #    (0,3,3),
+    #    (0,2,3)]
+    roof_polygon_2 = generate_loop(grid_x, grid_y, testgridz, testroof0["faces"][1]["edges"])
     # centerline at highest elevation
-    centerline = generate_loop(grid_x, grid_y, grid_z, [(0,2,4),(3,2,4)])
+    centerline = generate_loop(grid_x, grid_y, testgridz, testroof0["centerline"])
     #trace("roof centerline: ", centerline)
     roofer = Roofing("roof_studs", chimney_pipe)
     #direction1 = roof_polygon1[0].GetVectorTo(

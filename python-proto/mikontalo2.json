@@ -135,7 +135,38 @@
 		"points":[[2,0,1], [2,0,2], [2,1,1]],
 		"elevations": "elev_z",
 		"z_level": 44
-	}]
+	}],
+	"roof_sections": [{
+		"name": "main",
+        "profile": "S18-92W-1100-04",
+        "material": "S235JR",
+		"elevations": "grid_z",
+		"centerline": [[0,2,4],[3,2,4]],
+		"chimney_pipe": true,
+		"intersects": null,
+		"faces": [{
+			"name": "lape_1",
+			"edges": [[0,2,3], [0,1,3], [3,1,3], [3,2,3]]
+		},{
+			"name": "lape_2",
+			"edges": [[3,2,3], [3,3,3], [0,3,3], [0,2,3]]
+		}]
+    },{
+		"name": "porch",
+        "profile": "S18-92W-1100-04",
+        "material": "S235JR",
+		"elevations": "elev_z",
+		"centerline": [[0,2,4],[3,2,4]],
+		"chimney_pipe": false,
+		"intersects": "main.lape_1",
+		"face1": [{
+			"name": "porch_lape_1",
+			"edges": [[0,2,3], [0,1,3], [3,1,3], [3,2,3]]
+		},{
+			"name": "porch_lape_2",
+			"edges": [[3,2,3], [3,3,3], [0,3,3], [0,2,3]]
+		}]
+    }]
 }
 	
 	
