@@ -295,7 +295,10 @@ def get_differences(polygon):
     #trace("diffs: ", diffs)
     aabbs = []
     if isinstance(diffs, Polygon):
-        diffs.geoms = [diffs]
+        if diffs.is_empty:
+            diffs.geoms = []
+        else:
+            diffs.geoms = [diffs]
     for polygons in diffs.geoms:
         bound_box = polygons.bounds
         minx, miny, maxx, maxy = bound_box
