@@ -1,0 +1,11 @@
+[{
+		"Name": "Varaus-0",
+		"Coordinates": [3438.2248, 4098.7323, 850],
+		"Type": "Sockets/E"
+	},
+	{
+		"Name": "Varaus-1",
+		"Coordinates": [4645.2055, 5062.8584, 2000],
+		"Type": "Sockets/C,D"
+	}
+]
